@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">ChatBox</string>
+    <string name="log_in">Log In</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="open">open</string>
+    <string name="close">close</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="tools">Tools</string>
+    <string name="user_profile">User Profile</string>
+    <string name="log_out">Log Out</string>
+    <string name="sign_in_different_account">Sign In Different Account</string>
+    <string name="settings">Settings</string>
+    <string name="about_us">About Us</string>
+    <string name="about">About</string>
+    <string name="user">User</string>
+    <string name="about_this_app">About This App</string>
+    <string name="search">Search...</string>
+    <string name="sign_up_message">Sign up now to meet new people</string>
+</resources>

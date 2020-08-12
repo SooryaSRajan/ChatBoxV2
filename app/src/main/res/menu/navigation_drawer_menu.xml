@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+    <item android:title="@string/user">
+        <menu>
+            <item android:id="@+id/user_profile" android:title="@string/user_profile" android:icon="@drawable/ic_person_outline_black_24dp"/>
+            <item android:title="@string/sign_in_different_account" android:id="@+id/sign_in_different" android:icon="@drawable/ic_account_circle_black_24dp"/>
+            <item android:title="@string/settings" android:id="@+id/settings_fragment" android:icon="@drawable/ic_settings_black_24dp"/>
+            <item android:id="@+id/log_out" android:title="@string/log_out" android:icon="@drawable/logout_icon_24dp"/>
+        </menu>
+    </item>
+
+    <item android:title="@string/about">
+        <menu>
+            <item android:title="@string/about_us" android:id="@+id/about_us"/>
+            <item android:title="@string/about_this_app" android:id="@+id/about_this_app"/>
+        </menu>
+
+    </item>
+
+
+
+</menu>

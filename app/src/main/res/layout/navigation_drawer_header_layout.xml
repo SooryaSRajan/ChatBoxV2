@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    android:background="@color/colorPrimary"
+    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+    android:layout_height="150dp">
+
+    <TextView
+        android:text="Hello, Soorya"
+        android:textSize="25sp"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="30dp"
+        android:textColor="@color/colorYellow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/user_name_navigation_view"/>
+
+    <ImageView
+        android:layout_marginStart="40dp"
+        android:layout_marginEnd="30dp"
+        android:src="@drawable/ic_launcher_background"
+        android:id="@+id/profile_pic_header"
+        android:layout_centerVertical="true"
+        android:layout_toRightOf="@+id/user_name_navigation_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+</RelativeLayout>
