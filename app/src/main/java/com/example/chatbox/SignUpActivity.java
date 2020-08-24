@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -14,13 +15,19 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.chatbox.user_profile_database.UserProfileTable;
+import com.example.chatbox.user_profile_database.profile;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -119,6 +126,23 @@ int nameFlag = 0, emailFlag = 0, passwordFlag = 0, passwordTwoFlag = 0;
                                 if (task.isSuccessful()) {
                                     mRef.child("USER PROFILE").child(mAuth.getUid()).child("NAME").setValue(name);
 
+                                    final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER PROFILE");
+                                    reference.addListenerForSingleValueEvent(new ValueEventListener() {
+                                        @Override
+                                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                            for(DataSnapshot dataSnapshot : snapshot.getChildren()){
+
+                                                asyncTask(dataSnapshot.getKey(),  dataSnapshot.child("NAME").getValue().toString());
+
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onCancelled(@NonNull DatabaseError error) {
+
+                                        }
+                                    });
+
                                     Intent intent = new Intent(SignUpActivity.this, HomePageActivity.class);
                                     startActivity(intent);
                                     finish();
@@ -135,5 +159,21 @@ int nameFlag = 0, emailFlag = 0, passwordFlag = 0, passwordTwoFlag = 0;
         });
     }
 
+    void asyncTask(final String userId, final String mName) {
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    UserProfileTable database = UserProfileTable.getInstance(SignUpActivity.this);
+                    profile object = new profile(Objects.requireNonNull(userId), mName);
+                    database.dao().insertProfile(object);
 
+
+                } catch (Exception e) {
+                    Log.e("Async List View", e.toString());
+                }
+
+            }
+        });
+    }
 }

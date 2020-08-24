@@ -25,13 +25,26 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.example.chatbox.CONSTANTS.*;
+import org.w3c.dom.Text;
 
 import java.util.Objects;
+
+import static com.example.chatbox.CONSTANTS.USER_NAME;
+import static com.example.chatbox.R.id.user_name_navigation_view;
 
 public class HomePageActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     DrawerLayout drawerLayout;
@@ -43,6 +56,8 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
     TabLayout layout;
     EditText text;
 
+    final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+    DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,7 +98,6 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         toolbar = findViewById(R.id.tool_bar);
         setSupportActionBar(toolbar);
 
-
         navigationView = findViewById(R.id.navigation_view);
         navigationView.setNavigationItemSelectedListener(this);
 
@@ -95,9 +109,27 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
 
         fragmentManager = getSupportFragmentManager();
         fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.replace(R.id.frame_layout_main, new user_list_view_fragment(this, getSupportFragmentManager()));
+        fragmentTransaction.replace(R.id.frame_layout_main, new user_list_view_fragment(this, getSupportFragmentManager()), "USER LIST FRAGMENT");
         fragmentTransaction.commit();
 
+        mRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+
+
+                USER_NAME = snapshot.child("USER PROFILE").child(firebaseUser.getUid()).child("NAME").getValue().toString();
+                navigationView = findViewById(R.id.navigation_view);
+                View headerView = navigationView.getHeaderView(0);
+                TextView textView = headerView.findViewById(user_name_navigation_view);
+                textView.setText("Hello!  " + USER_NAME);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+        
     }
 
     @Override
@@ -134,8 +166,6 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
         drawerLayout.closeDrawer(GravityCompat.START);
-        fragmentManager = getSupportFragmentManager();
-        fragmentTransaction = fragmentManager.beginTransaction();
 
         if (menuItem.getItemId() == R.id.log_out) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -150,6 +180,13 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
                 }
             }).setNegativeButton("No", null).create();
             builder.show();
+        }
+
+        if(menuItem.getItemId() == R.id.user_profile){
+            fragmentManager = getSupportFragmentManager();
+            fragmentTransaction = fragmentManager.beginTransaction();
+            fragmentTransaction.replace(R.id.frame_layout_main, new profileFragment(), "PROFILE FRAGMENT");
+            fragmentTransaction.commit();
         }
 
         return true;

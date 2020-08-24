@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#4400A3</color>
+    <color name="colorPrimaryBox">#5912BC</color>
     <color name="colorPrimaryDark">#150045</color>
     <color name="colorAccent">#03DAC5</color>
     <color name="colorBlack">#232323</color>
@@ -9,5 +10,5 @@
     <color name="colorYellow">#FFC107</color>
     <color name="colorGrey">#777777</color>
     <color name="colorRed">#C50000</color>
-
+    <color name="colorTransparent">#00FFFFFF</color>
 </resources>

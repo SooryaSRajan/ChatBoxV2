@@ -40,29 +40,50 @@ public class FragmentThree extends Fragment {
     private List<HashMap> profileMap = new ArrayList<>(), searchMap = new ArrayList<>();
     final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
     DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
+    private static ListView listView;
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
         // Inflate the layout for this fragment
-        final View view = inflater.inflate(R.layout.fragment_one, container, false);
-        asyncTask(view);
-
-        profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
-        ListView listView = view.findViewById(R.id.list_view);
-        listView.setAdapter(adapter);
-        adapter.notifyDataSetChanged();
-
+        final View view = inflater.inflate(R.layout.fragment_three, container, false);
+        asyncTask();
+        listView = view.findViewById(R.id.list_view_three);
+        ListViewUpdater();
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
-                Toast.makeText(getActivity(), profileMap.get(position).get("NAME").toString(), Toast.LENGTH_SHORT).show();
 
                 mRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if(snapshot.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
                                 .get("KEY")).toString()).hasChild(firebaseUser.getUid())){
+
+                            String token = snapshot.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
+                                    .get("KEY")).toString()).child(firebaseUser.getUid()).getValue().toString();
+
+                            if(token.contains("ACCEPTED")){
+
+                                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                                builder.setTitle("Unfriend " +
+                                        profileMap.get(position).get("NAME").toString() + " ?")
+                                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                mRef.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
+                                                    .get("KEY")).toString()).child(firebaseUser.getUid()).removeValue();
+
+                                                mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
+                                                        .get("KEY")).toString()).removeValue();
+
+                                            }
+                                        }).setNegativeButton("No", null).create();
+                                builder.show();
+
+                                Toast.makeText(getActivity(), "Already Friends", Toast.LENGTH_SHORT).show();
+                            }
+                            else
                             Toast.makeText(getActivity(), "Request already sent", Toast.LENGTH_SHORT).show();
                         }
                         else{
@@ -72,10 +93,8 @@ public class FragmentThree extends Fragment {
                                     .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
-                                  //          mRef.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
-                                    //                .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("REQUESTED");
-                                            mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
-                                                    .get("KEY")).toString()).setValue("REQUESTED");
+                                            mRef.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
+                                                    .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("REQUESTED");
 
                                         }
                                     }).setNegativeButton("No", null).create();
@@ -97,7 +116,7 @@ public class FragmentThree extends Fragment {
     }
 
 
-    void asyncTask(final View view) {
+    void asyncTask() {
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
@@ -134,6 +153,16 @@ public class FragmentThree extends Fragment {
                 }
 
             }});
+    }
+
+    public void ListViewUpdater(){
+
+        if(getActivity()!=null) {
+            profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
+            listView.setAdapter(adapter);
+            adapter.notifyDataSetChanged();
+        }
+
     }
 
     public void searchFunction(String string){

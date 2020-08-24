@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_background"
+    tools:context=".chatListActivity">
+
+    <include
+        android:id="@+id/toolbarInclude"
+        android:layout_width="match_parent"
+        layout="@layout/tool_bar_chat"
+        android:layout_height="wrap_content" />
+
+    <ListView
+        android:id="@+id/chat_list_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/toolbarInclude"
+        android:layout_above="@id/message_box"/>
+
+    <ImageButton
+        android:layout_margin="15dp"
+        android:src="@drawable/ic_send_black_24dp"
+        android:id="@+id/message_button"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/circle"
+        android:layout_width="wrap_content"
+        android:layout_height="?attr/actionBarSize"/>
+
+    <EditText
+        android:background="@drawable/text_box"
+        android:padding="13dp"
+        android:layout_marginLeft="15dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginBottom="15dp"
+        android:hint="Type Message"
+        android:layout_toLeftOf="@+id/message_button"
+        android:textColorHint="@color/colorGrey"
+        android:textColor="@color/colorWhite"
+        android:id="@+id/message_box"
+        android:inputType="textCapSentences"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_alignParentBottom="true"/>
+
+</RelativeLayout>

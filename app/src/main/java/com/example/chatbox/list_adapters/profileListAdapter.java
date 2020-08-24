@@ -33,7 +33,11 @@ public class profileListAdapter extends BaseAdapter {
 
     @Override
     public Object getItem(int position) {
-        return list.get(position).containsKey("NAME");
+        if(list!=null) {
+            return list.get(position).containsKey("NAME");
+        }
+        else
+            return null;
     }
 
     @Override
@@ -49,7 +53,6 @@ public class profileListAdapter extends BaseAdapter {
         textView.setText(list.get(position).get("NAME").toString());
 
         return  convertView;
-        //return null;
 
     }
 }

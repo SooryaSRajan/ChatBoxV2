@@ -40,24 +40,26 @@ import static androidx.constraintlayout.widget.Constraints.TAG;
 public class FragmentTwo extends Fragment {
     private List<profile> profileList = null;
     private List<HashMap> profileMap = new ArrayList<>(), searchMap = new ArrayList<>(), mainMap = new ArrayList<>();
-    final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
-    DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
+    private final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+    private DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
+    private static ListView listView;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        final View view = inflater.inflate(R.layout.fragment_one, container, false);
-        asyncTask(view);
+        final View view = inflater.inflate(R.layout.fragment_two, container, false);
 
-        ListView listView = view.findViewById(R.id.list_view);
+        listView = view.findViewById(R.id.list_view_two);
+        asyncTask();
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
-                Toast.makeText(getActivity(), profileMap.get(position).get("NAME").toString(), Toast.LENGTH_SHORT).show();
 
                 androidx.appcompat.app.AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                builder.setTitle("Are You Sure You Want To Logout?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                builder.setTitle("Accept Friend request?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
@@ -88,7 +90,7 @@ public class FragmentTwo extends Fragment {
     }
 
 
-    void asyncTask(final View view) {
+    void asyncTask() {
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
@@ -128,18 +130,19 @@ public class FragmentTwo extends Fragment {
                             profileMap.clear();
                             searchMap.clear();
                             for (int i = 0; i < mainMap.size(); i++) {
-                                if (snapshot.child("REQUEST").child(Objects.requireNonNull(mainMap.get(i).get("KEY"))
-                                        .toString()).hasChild(firebaseUser.getUid())) {
-                                    profileMap.add(mainMap.get(i));
-                                    Toast.makeText(getActivity(), mainMap.get(i).get("NAME").toString() + "Helloo", Toast.LENGTH_SHORT).show();
-                                    searchMap.add(mainMap.get(i));
+                                if (snapshot.child("REQUEST").child(firebaseUser.getUid()).hasChild(Objects.requireNonNull(mainMap.get(i).get("KEY"))
+                                        .toString()) ) {
+                                    String token =  snapshot.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(mainMap.get(i).get("KEY"))
+                                            .toString()).getValue().toString();
 
-                                    ListView listView = view.findViewById(R.id.list_view);
-                                    profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
-                                    listView.setAdapter(adapter);
-                                    adapter.notifyDataSetChanged();
+                                    if(token.contains("REQUESTED")) {
+                                        profileMap.add(mainMap.get(i));
+                                        searchMap.add(mainMap.get(i));
+
+                                    }
                                 }
                             }
+                            ListViewUpdater();
                         }
                         @Override
                         public void onCancelled(@NonNull DatabaseError error) {
@@ -150,8 +153,18 @@ public class FragmentTwo extends Fragment {
                 catch(Exception e){
                     Log.e("Async List View", e.toString());
                 }
-
             }});
+    }
+
+    public void ListViewUpdater(){
+
+
+        if(getActivity()!=null) {
+            profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
+            listView.setAdapter(adapter);
+            adapter.notifyDataSetChanged();
+        }
+
     }
 
     public void searchFunction(String string){
