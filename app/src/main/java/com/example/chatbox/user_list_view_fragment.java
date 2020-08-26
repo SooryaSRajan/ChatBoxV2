@@ -5,18 +5,24 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.viewpager.widget.ViewPager;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.example.chatbox.user_profile_database.profile;
@@ -27,6 +33,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Objects;
 
 import static android.content.ContentValues.TAG;
@@ -36,9 +44,29 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
     private FragmentManager fragmentManager;
     Context context;
     SwipeRefreshLayout pullToRefresh;
-    final FragmentOne fragmentOne = new FragmentOne();
-    final FragmentTwo fragmentTwo = new FragmentTwo();
-    final FragmentThree fragmentThree = new FragmentThree();
+
+    FragmentOne fragmentOne;
+    FragmentTwo fragmentTwo;
+    FragmentThree fragmentThree;
+    ArrayList<HashMap> mMapList = new ArrayList<>();
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        fragmentOne = new FragmentOne();
+        fragmentTwo = new FragmentTwo();
+        fragmentThree = new FragmentThree();
+        setHasOptionsMenu(true);
+
+    }
+
+    @Override
+    public void onPrepareOptionsMenu(@NonNull Menu menu) {
+        menu.findItem(R.id.search_button).setVisible(true);
+        menu.findItem(R.id.home_button).setVisible(false);
+        super.onPrepareOptionsMenu(menu);
+    }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -58,6 +86,7 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
         final ViewPager viewPager = view.findViewById(R.id.view_pager);
         pullToRefresh = getActivity().findViewById(R.id.pullToRefresh);
         pullToRefresh.setOnRefreshListener(this);
+
 
         mSearch.addTextChangedListener(new TextWatcher() {
             @Override
@@ -105,20 +134,19 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
     }
 
     public  void refreshData(){
-        tableDelete();
+       // tableDelete();
+        mMapList.clear();
         final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER PROFILE");
         reference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 for(DataSnapshot dataSnapshot : snapshot.getChildren()){
-                   asyncTask(dataSnapshot.getKey(),  Objects.requireNonNull(dataSnapshot.child("NAME").getValue()).toString());
+                    HashMap map = new HashMap();
+                    map.put("KEY",dataSnapshot.getKey());
+                    map.put("NAME", Objects.requireNonNull(dataSnapshot.child("NAME").getValue()).toString());
+                    mMapList.add(map);
                 }
-                fragmentOne.asyncTask();
-                fragmentOne.ListViewUpdater();
-                fragmentTwo.asyncTask();
-                fragmentTwo.ListViewUpdater();
-                fragmentThree.asyncTask();
-                fragmentThree.ListViewUpdater();
+                asyncTask(mMapList);
             }
 
             @Override
@@ -128,23 +156,40 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
         });
     }
 
-
-    private void asyncTask(final String userId, final String mName) {
-        AsyncTask.execute(new Runnable() {
+    private void asyncTask(final ArrayList<HashMap> mapList) {
+        Thread thread = new Thread(){
             @Override
             public void run() {
                 try {
                     UserProfileTable database = UserProfileTable.getInstance(getActivity());
-                    profile object = new profile(Objects.requireNonNull(userId), mName);
-                    database.dao().insertProfile(object);
-                    Log.e(TAG, "run: Table refreshed" );
+                    database.dao().deleteAll();
+                    for(HashMap map : mapList) {
+                        database = UserProfileTable.getInstance(getActivity());
+                        profile object = new profile(Objects.requireNonNull(map.get("KEY")).toString(), map.get("NAME").toString());
+                        database.dao().insertProfile(object);
+                        Log.e(TAG, "run: " + map.get("NAME").toString());
+                    }
+                    Handler handler = new Handler(Looper.getMainLooper());
+                    handler.post(new Runnable() {
+                        public void run() {
+                            // UI code goes here
+                            Toast.makeText(getActivity(), "Hello", Toast.LENGTH_SHORT).show();
+                            fragmentOne.asyncTask();
+                            fragmentOne.ListViewUpdater();
+                            fragmentTwo.asyncTask();
+                            fragmentTwo.ListViewUpdater();
+                            fragmentThree.asyncTask();
+                            fragmentThree.ListViewUpdater();
 
+                        }
+                    });
                 } catch (Exception e) {
                     Log.e("Table refresher", e.toString());
                 }
 
             }
-        });
+        };
+        thread.start();
     }
 
     private void tableDelete() {

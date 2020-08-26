@@ -9,6 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,7 +31,11 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -69,6 +75,12 @@ public class FragmentTwo extends Fragment {
                         mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
                                 .get("KEY")).toString()).setValue("ACCEPTED");
 
+                        mRef.child("PROFILE ORDER").child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
+                                .get("KEY")).toString()).setValue(getTime());
+                        mRef.child("PROFILE ORDER").child(Objects.requireNonNull(profileMap.get(position)
+                                .get("KEY")).toString()).child(firebaseUser.getUid()).setValue(getTime());
+
+
                     }
                 }).setNegativeButton("No", new DialogInterface.OnClickListener() {
                     @Override
@@ -91,9 +103,10 @@ public class FragmentTwo extends Fragment {
 
 
     void asyncTask() {
-        AsyncTask.execute(new Runnable() {
+        Thread thread = new Thread(){
             @Override
             public void run() {
+                super.run();
                 try {
                     UserProfileTable database = UserProfileTable.getInstance(getContext());
 
@@ -123,7 +136,6 @@ public class FragmentTwo extends Fragment {
                         }
                     }
 
-
                     mRef.addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -142,7 +154,16 @@ public class FragmentTwo extends Fragment {
                                     }
                                 }
                             }
-                            ListViewUpdater();
+
+                            Handler handler = new Handler(Looper.getMainLooper());
+                            handler.post(new Runnable() {
+                                public void run() {
+                                    // UI code goes here
+                                    ListViewUpdater();
+
+                                }
+                            });
+
                         }
                         @Override
                         public void onCancelled(@NonNull DatabaseError error) {
@@ -150,14 +171,15 @@ public class FragmentTwo extends Fragment {
                         }
                     });
                 }
-                catch(Exception e){
+                catch(Exception e) {
                     Log.e("Async List View", e.toString());
                 }
-            }});
+            }
+        };
+        thread.start();
     }
 
     public void ListViewUpdater(){
-
 
         if(getActivity()!=null) {
             profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
@@ -166,6 +188,14 @@ public class FragmentTwo extends Fragment {
         }
 
     }
+
+
+    public String getTime(){
+        Date currentTime = Calendar.getInstance().getTime();
+        DateFormat dateFormat = new SimpleDateFormat("HH:mm");
+        return dateFormat.format(currentTime);
+    }
+
 
     public void searchFunction(String string){
         Log.e(TAG, "searchFunction: 1" + string );
@@ -186,6 +216,18 @@ public class FragmentTwo extends Fragment {
                   listView.setAdapter(adapter);
             }
         }*/
+    }
+
+    @Override
+    public void onDestroyView() {
+        Log.e(TAG, "onDestroyView: View Destroyed 2" );
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onDetach() {
+        Log.e(TAG, "onDetach: Frag Detached 2");
+        super.onDetach();
     }
 
 }

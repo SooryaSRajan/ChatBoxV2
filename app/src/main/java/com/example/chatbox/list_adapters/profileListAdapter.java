@@ -1,6 +1,7 @@
 package com.example.chatbox.list_adapters;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -48,10 +49,14 @@ public class profileListAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
 
-        convertView = inflater.inflate(R.layout.profile_list_view, null);
-        TextView textView =  convertView.findViewById(R.id.user_name);
-        textView.setText(list.get(position).get("NAME").toString());
-
+        try {
+            convertView = inflater.inflate(R.layout.profile_list_view, null);
+            TextView textView = convertView.findViewById(R.id.user_name);
+            textView.setText(list.get(position).get("NAME").toString());
+        }
+        catch (Exception e){
+            Log.e("Adapter Profile", "getView: " + e.toString() );
+        }
         return  convertView;
 
     }

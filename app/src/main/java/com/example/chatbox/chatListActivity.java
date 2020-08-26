@@ -6,27 +6,43 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Adapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.chatbox.list_adapters.chatAdapter;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import org.w3c.dom.Text;
 
+import java.io.ByteArrayOutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -34,6 +50,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import static com.example.chatbox.CONSTANTS.USER_NAME;
 
@@ -42,8 +60,8 @@ public class chatListActivity extends AppCompatActivity {
     Toolbar toolbar;
     ImageButton backButton;
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
-    private DatabaseReference ref = database.getReference(), ref2 = database.getReference();
-    private ValueEventListener eventListener, eventListener2;
+    private DatabaseReference ref = database.getReference(), ref2 = database.getReference(), onlineRef = database.getReference(), refMain = database.getReference().child("NEW MESSAGE");
+    private ValueEventListener eventListener, eventListener2, onlineListener;
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
     ListView listView;
     ArrayList<HashMap> mList = new ArrayList<>();
@@ -53,7 +71,9 @@ public class chatListActivity extends AppCompatActivity {
     String mMessage;
     String TAG = "ChatListActivity";
     ArrayList<String> removeKey = new ArrayList<>();
-
+    String typingStatus;
+    TextView mTypingStatus, mOnlineStatus;
+    ImageButton addImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,19 +81,61 @@ public class chatListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chat_list);
         final Intent intent = getIntent();
 
+        ref.child("TYPING").child(Objects.requireNonNull(intent.getStringExtra("KEY")))
+                .child(Objects.requireNonNull(mAuth.getUid())).setValue("NOT");
+
         toolbar = findViewById(R.id.tool_bar_chat);
         toolbar.setTitle("");
         TextView toolBarName = findViewById(R.id.toolbar_name);
         toolBarName.setText(intent.getStringExtra("NAME"));
         setSupportActionBar(toolbar);
-        ref.child("MESSAGE POOL").removeValue();
+        addImage = findViewById(R.id.add_resource);
+
+        addImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(Intent.ACTION_PICK,android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(i, 0);
+            }
+        });
+
+        mOnlineStatus = findViewById(R.id.online_status);
+        mTypingStatus = findViewById(R.id.typing_status);
+        mTypingStatus.setVisibility(View.GONE);
+        eventListener2 = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                      try{
+                        typingStatus = snapshot.child("TYPING").child(Objects.requireNonNull(intent.getStringExtra("KEY")))
+                                .child(Objects.requireNonNull(mAuth.getUid())).getValue().toString();
+                        if (typingStatus.contains("TYPING")) {
+                            mTypingStatus.setVisibility(View.VISIBLE);
+                            mTypingStatus.setText("Typing...");
+                        }
+                        else{
+                            mTypingStatus.setVisibility(View.GONE);
+                        }
+                      }
+                      catch (Exception e){
+                          Log.e(TAG, "onDataChange: " + e.toString() );
+                      }
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        };
+
+        ref2.addValueEventListener(eventListener2);
 
         eventListener= new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 mList.clear();
                 if (snapshot.exists()) {
-                    for(DataSnapshot snap : snapshot.child("NEW MESSAGE").getChildren()) {
+                    for(DataSnapshot snap : snapshot.getChildren()) {
                         if (snap.child("TO").getValue().toString().contains(mAuth.getUid()) &&
                                 snap.child("FROM").getValue().toString().contains(intent.getStringExtra("KEY"))){
                             HashMap map = new HashMap();
@@ -113,8 +175,34 @@ public class chatListActivity extends AppCompatActivity {
             }
         };
 
-        ref.addValueEventListener(eventListener);
-/*
+        refMain.addValueEventListener(eventListener);
+
+        onlineListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                try {
+                    String mStatus = snapshot.child("ONLINE").child(Objects.requireNonNull(intent.getStringExtra("KEY"))).getValue().toString();
+                    if (mStatus.contains("ONLINE")) {
+                        mOnlineStatus.setVisibility(View.VISIBLE);
+                        mOnlineStatus.setText("Online");
+                    }
+                    else{
+                        mOnlineStatus.setVisibility(View.GONE);
+                    }
+                }
+                catch (Exception ignored){
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        };
+
+        onlineRef.addValueEventListener(onlineListener);
+        /*
         eventListener2 = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -147,6 +235,24 @@ public class chatListActivity extends AppCompatActivity {
         chatText = findViewById(R.id.message_box);
         mSend = findViewById(R.id.message_button);
 
+        chatText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            ref.child("TYPING").child(mAuth.getUid()).child(intent.getStringExtra("KEY")).setValue("TYPING");
+            statusRemover(intent);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+
         mSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -157,6 +263,7 @@ public class chatListActivity extends AppCompatActivity {
                 }
             }
         });
+
 
         backButton = findViewById(R.id.back_button_chat);
         backButton.setOnClickListener(new View.OnClickListener() {
@@ -179,7 +286,7 @@ public class chatListActivity extends AppCompatActivity {
         map.put("TIME",getTime());
         mList.add(map);
 
-        writeToFirebase(map);
+        writeToFirebase(map, intent.getStringExtra("KEY"));
     }
 
     @Override
@@ -201,30 +308,20 @@ public class chatListActivity extends AppCompatActivity {
         listView.post(new Runnable() {
             @Override
             public void run() {
-                // Select the last row so it will scroll into view...
-               // listView = findViewById(R.id.chat_list_view);
                 listView.setSelection(adapter.getCount() - 1);
             }
         });
     }
 
-    public void writeToFirebase(HashMap temp) {
+    public void writeToFirebase(HashMap temp, final String ID) {
         ref.child("NEW MESSAGE").push().setValue(temp, new DatabaseReference.CompletionListener() {
             @Override
             public void onComplete(@Nullable DatabaseError databaseError, @NonNull DatabaseReference databaseReference) {
-                if (databaseError != null) {
-                    Toast.makeText(chatListActivity.this, "Failed to send message", Toast.LENGTH_SHORT).show();
-                    Log.e(TAG, "onComplete: Message Sent" );
-                }
+                ref.child("PROFILE ORDER").child(mAuth.getUid()).child(ID).setValue(getTime());
+                ref.child("PROFILE ORDER").child(ID).child(mAuth.getUid()).setValue(getTime());
             }
 
         });
-       /* adapter = new chatAdapter(chatListActivity.this, mList);
-        listView = findViewById(R.id.chat_list_view);
-        listView.setAdapter(adapter);
-        adapter.notifyDataSetChanged();
-        scrollMyListViewToBottom();
-*/
     }
 
     public void writeFinal(HashMap temp){
@@ -244,6 +341,52 @@ public class chatListActivity extends AppCompatActivity {
             ref.child("NEW MESSAGE").child(keys).removeValue();
             Log.e(TAG, "removeChild: Child has been removed");
         }
+    }
+
+    public void statusRemover(final Intent intent){
+        Thread thread = new Thread(){
+            @Override
+            public void run() {
+                super.run();
+                try {
+                    TimeUnit.SECONDS.sleep(2);
+                    ref.child("TYPING").child(Objects.requireNonNull(mAuth.getUid()))
+                            .child(Objects.requireNonNull(intent.getStringExtra("KEY"))).setValue("NOT");
+
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+    thread.start();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 0 && resultCode == RESULT_OK && null != data) {
+            Uri selectedImage = data.getData();
+            String[] filePathColumn = { MediaStore.Images.Media.DATA };
+            Cursor cursor = getContentResolver().query(selectedImage,filePathColumn, null, null, null);
+            cursor.moveToFirst();
+            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+            String picturePath = cursor.getString(columnIndex);
+            cursor.close();
+            Bitmap bitmap = BitmapFactory.decodeFile(picturePath);
+            uploadFile(bitmap);
+        }
+    }
+
+    private void uploadFile(Bitmap bitmap) {
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        StorageReference storageRef = storage.getReference();
+
+        ByteArrayOutputStream ByteStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 25, ByteStream);
+        byte[] data = ByteStream.toByteArray();
+
+        //storageRef.putBytes()
     }
 
     @Override

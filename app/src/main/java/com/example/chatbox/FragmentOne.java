@@ -1,5 +1,6 @@
 package com.example.chatbox;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -7,15 +8,20 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -47,11 +53,21 @@ public class FragmentOne extends Fragment {
     final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
     DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
     private static ListView listView;
+    SwipeRefreshLayout pullToRefresh;
+    ViewTreeObserver.OnScrollChangedListener mOnScrollChangedListener;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        Log.e(ContentValues.TAG, "onCreate: Fragment 1" );
+
+        super.onCreate(savedInstanceState);
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
+        Log.e(TAG, "onCreateView: Frag 1" );
         // Inflate the layout for this fragment
         final View view = inflater.inflate(R.layout.fragment_one, container, false);
         listView = view.findViewById(R.id.list_view);
@@ -64,9 +80,10 @@ public class FragmentOne extends Fragment {
                 intent.putExtra("KEY", profileMap.get(position).get("KEY").toString());
                 intent.putExtra("NAME", profileMap.get(position).get("NAME").toString());
                 startActivity(intent);
-                Objects.requireNonNull(getActivity()).finish();
+                getActivity().finish();
             }
         });
+
 
         return view;
     }
@@ -129,7 +146,21 @@ public class FragmentOne extends Fragment {
 
                                 }
                             }
-                            ListViewUpdater();
+                            for(DataSnapshot snap : snapshot.child("PROFILE ORDER").child(firebaseUser.getUid()).getChildren()) {
+                                Log.e(TAG, "Profile Order " + snap.getValue());
+                                Log.e(TAG, "Profile Order Key " + snap.getKey());
+
+                            }
+
+                            Handler handler = new Handler(Looper.getMainLooper());
+                            handler.post(new Runnable() {
+                                public void run() {
+                                    // UI code goes here
+                                    ListViewUpdater();
+
+                                }
+                            });
+
                         }
                         @Override
                         public void onCancelled(@NonNull DatabaseError error) {
@@ -176,5 +207,4 @@ public class FragmentOne extends Fragment {
             }
         }*/
     }
-
 }

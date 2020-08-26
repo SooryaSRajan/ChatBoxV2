@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/toolbarInclude"
-        android:layout_above="@id/message_box"/>
+        android:layout_above="@id/typing_status"/>
 
     <ImageButton
         android:layout_margin="15dp"
@@ -30,14 +30,25 @@
         android:layout_width="wrap_content"
         android:layout_height="?attr/actionBarSize"/>
 
+    <TextView
+        android:id="@+id/typing_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:textColor="@color/colorWhite"
+        android:padding="5dp"
+        android:layout_marginRight="3dp"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@+id/message_button"/>
+
     <EditText
         android:background="@drawable/text_box"
         android:padding="13dp"
-        android:layout_marginLeft="15dp"
         android:layout_marginTop="15dp"
         android:layout_marginBottom="15dp"
         android:hint="Type Message"
         android:layout_toLeftOf="@+id/message_button"
+        android:layout_toRightOf="@+id/add_resource"
         android:textColorHint="@color/colorGrey"
         android:textColor="@color/colorWhite"
         android:id="@+id/message_box"
@@ -45,5 +56,14 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:layout_alignParentBottom="true"/>
+
+    <ImageButton
+        android:backgroundTint="@color/colorTransparent"
+        android:layout_marginBottom="13dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:src="@drawable/ic_add_circle_black_24dp"
+        android:id="@+id/add_resource"/>
 
 </RelativeLayout>

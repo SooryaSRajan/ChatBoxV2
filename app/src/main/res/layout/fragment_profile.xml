@@ -4,8 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@drawable/gradient_background"
     tools:context=".profileFragment">
 
+    <include
+        android:layout_width="match_parent"
+        layout="@layout/tool_bar"
+        android:layout_height="wrap_content" />
 
     <androidx.cardview.widget.CardView
         android:layout_width="230dp"

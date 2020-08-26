@@ -1,6 +1,7 @@
 package com.example.chatbox;
 
 import android.app.AlertDialog;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -8,11 +9,15 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -39,17 +44,19 @@ public class FragmentThree extends Fragment {
     private List<profile> profileList = null;
     private List<HashMap> profileMap = new ArrayList<>(), searchMap = new ArrayList<>();
     final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
-    DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
+    DatabaseReference mRef = FirebaseDatabase.getInstance().getReference().child("REQUEST");
     private static ListView listView;
+    SwipeRefreshLayout pullToRefresh;
+    ViewTreeObserver.OnScrollChangedListener mOnScrollChangedListener;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
         // Inflate the layout for this fragment
         final View view = inflater.inflate(R.layout.fragment_three, container, false);
-        asyncTask();
         listView = view.findViewById(R.id.list_view_three);
-        ListViewUpdater();
+        asyncTask();
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
@@ -57,10 +64,10 @@ public class FragmentThree extends Fragment {
                 mRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if(snapshot.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
+                        if(snapshot.child(Objects.requireNonNull(profileMap.get(position)
                                 .get("KEY")).toString()).hasChild(firebaseUser.getUid())){
 
-                            String token = snapshot.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
+                            String token = snapshot.child(Objects.requireNonNull(profileMap.get(position)
                                     .get("KEY")).toString()).child(firebaseUser.getUid()).getValue().toString();
 
                             if(token.contains("ACCEPTED")){
@@ -71,10 +78,10 @@ public class FragmentThree extends Fragment {
                                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                             @Override
                                             public void onClick(DialogInterface dialog, int which) {
-                                                mRef.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
+                                                mRef.child(Objects.requireNonNull(profileMap.get(position)
                                                     .get("KEY")).toString()).child(firebaseUser.getUid()).removeValue();
 
-                                                mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
+                                                mRef.child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
                                                         .get("KEY")).toString()).removeValue();
 
                                             }
@@ -93,7 +100,7 @@ public class FragmentThree extends Fragment {
                                     .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
-                                            mRef.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
+                                            mRef.child(Objects.requireNonNull(profileMap.get(position)
                                                     .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("REQUESTED");
 
                                         }
@@ -147,6 +154,15 @@ public class FragmentThree extends Fragment {
                             Log.e(TAG, "run: For Loop");
                         }
                     }
+                    Handler handler = new Handler(Looper.getMainLooper());
+                    handler.post(new Runnable() {
+                        public void run() {
+                            // UI code goes here
+                            ListViewUpdater();
+
+                        }
+                    });
+
                 }
                 catch(Exception e){
                     Log.e("Async List View", e.toString());
@@ -186,4 +202,24 @@ public class FragmentThree extends Fragment {
         }*/
     }
 
+    @Override
+    public void onDestroyView() {
+        Log.e(TAG, "onDestroyView: View Destroyed 3" );
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onDetach() {
+        Log.e(TAG, "onDetach: Frag Detached 3");
+        super.onDetach();
+    }
+    @Override
+    public void onResume() {
+        Log.e(ContentValues.TAG, "onResume: Fragment 3" );
+        super.onResume();
+
+        if(!profileMap.isEmpty()){
+            ListViewUpdater();
+        }
+    }
 }

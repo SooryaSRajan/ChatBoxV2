@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -14,19 +15,14 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.google.android.material.navigation.NavigationView;
@@ -38,10 +34,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.example.chatbox.CONSTANTS.*;
-import org.w3c.dom.Text;
-
-import java.util.Objects;
 
 import static com.example.chatbox.CONSTANTS.USER_NAME;
 import static com.example.chatbox.R.id.user_name_navigation_view;
@@ -55,6 +47,7 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
     FragmentManager fragmentManager;
     TabLayout layout;
     EditText text;
+    Fragment fragment;
 
     final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
     DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
@@ -63,6 +56,9 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_page);
+        fragment = new user_list_view_fragment(this, getSupportFragmentManager());
+        mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("ONLINE");
+        mRef.child("ONLINE").child(firebaseUser.getUid()).onDisconnect().setValue("OFFLINE");
 
         toolbar = findViewById(R.id.search_bar_tool_bar);
         toolbar.setVisibility(View.GONE);
@@ -109,7 +105,7 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
 
         fragmentManager = getSupportFragmentManager();
         fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.replace(R.id.frame_layout_main, new user_list_view_fragment(this, getSupportFragmentManager()), "USER LIST FRAGMENT");
+        fragmentTransaction.replace(R.id.frame_layout_main, fragment, "USER LIST FRAGMENT");
         fragmentTransaction.commit();
 
         mRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -139,6 +135,15 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         return true;
     }
 
+
+    @Override
+    public boolean onPrepareOptionsMenu(@NonNull Menu menu) {
+        menu.findItem(R.id.home_button).setVisible(false);
+        super.onPrepareOptionsMenu(menu);
+        return true;
+    }
+
+
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.search_button) {
@@ -158,7 +163,13 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
                 }
             });
 
+        }
 
+        if(item.getItemId() == R.id.home_button){
+         //   fragmentManager = getSupportFragmentManager();
+           // fragmentTransaction = fragmentManager.beginTransaction();
+            //fragmentTransaction.replace(R.id.frame_layout_main, new user_list_view_fragment(this, getSupportFragmentManager()), "USER LIST FRAGMENT");
+            //fragmentTransaction.commit();
         }
         return super.onOptionsItemSelected(item);
     }
@@ -174,6 +185,7 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
                 public void onClick(DialogInterface dialog, int which) {
                     FirebaseAuth.getInstance().signOut();
                     asyncTask();
+                    mRef.child("ONLINE").child(firebaseUser.getUid()).onDisconnect().setValue("OFFLINE");
                     Intent intent = new Intent(HomePageActivity.this, LoginSignUpActivity.class);
                     startActivity(intent);
                     finish();
@@ -183,10 +195,8 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         }
 
         if(menuItem.getItemId() == R.id.user_profile){
-            fragmentManager = getSupportFragmentManager();
-            fragmentTransaction = fragmentManager.beginTransaction();
-            fragmentTransaction.replace(R.id.frame_layout_main, new profileFragment(), "PROFILE FRAGMENT");
-            fragmentTransaction.commit();
+            Intent intent = new Intent(HomePageActivity.this, ProfilePictureActivity.class);
+            startActivity(intent);
         }
 
         return true;
@@ -196,7 +206,6 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
-
                 UserProfileTable database = UserProfileTable.getInstance(HomePageActivity.this);
                 database.dao().deleteAll();
             }
