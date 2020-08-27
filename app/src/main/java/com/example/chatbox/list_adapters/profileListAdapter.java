@@ -57,6 +57,14 @@ public class profileListAdapter extends BaseAdapter {
         catch (Exception e){
             Log.e("Adapter Profile", "getView: " + e.toString() );
         }
+
+        try{
+            TextView textView = convertView.findViewById(R.id.message_count);
+            textView.setText(list.get(position).get("COUNT").toString());
+        }
+        catch (Exception e){
+
+        }
         return  convertView;
 
     }

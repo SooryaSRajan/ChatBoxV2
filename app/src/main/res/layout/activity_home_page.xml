@@ -11,6 +11,7 @@
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout android:id="@+id/pullToRefresh"
         android:layout_width="match_parent"
+        app:swipeRefreshLayoutProgressSpinnerBackgroundColor="@color/colorPurple"
         android:layout_height="wrap_content">
 
     <include
@@ -18,12 +19,13 @@
         layout="@layout/tool_bar"
         android:layout_height="wrap_content" />
 
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
     <include
         android:layout_width="match_parent"
         layout="@layout/tool_bar_search"
         android:layout_height="wrap_content" />
-
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
     <include
         android:layout_marginTop="?attr/actionBarSize"
         android:layout_width="match_parent"

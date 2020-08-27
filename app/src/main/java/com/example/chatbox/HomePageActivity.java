@@ -117,7 +117,7 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
                 navigationView = findViewById(R.id.navigation_view);
                 View headerView = navigationView.getHeaderView(0);
                 TextView textView = headerView.findViewById(user_name_navigation_view);
-                textView.setText("Hello!  " + USER_NAME);
+                textView.setText(USER_NAME);
             }
 
             @Override

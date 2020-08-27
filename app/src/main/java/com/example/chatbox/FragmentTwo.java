@@ -69,15 +69,15 @@ public class FragmentTwo extends Fragment {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
 
-                        mRef.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
+                        mRef.child("REQUEST").child(Objects.requireNonNull(searchMap.get(position)
                                 .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("ACCEPTED");
 
-                        mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
+                        mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(position)
                                 .get("KEY")).toString()).setValue("ACCEPTED");
 
-                        mRef.child("PROFILE ORDER").child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
+                        mRef.child("PROFILE ORDER").child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(position)
                                 .get("KEY")).toString()).setValue(getTime());
-                        mRef.child("PROFILE ORDER").child(Objects.requireNonNull(profileMap.get(position)
+                        mRef.child("PROFILE ORDER").child(Objects.requireNonNull(searchMap.get(position)
                                 .get("KEY")).toString()).child(firebaseUser.getUid()).setValue(getTime());
 
 
@@ -85,10 +85,10 @@ public class FragmentTwo extends Fragment {
                 }).setNegativeButton("No", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        mRef.child("REQUEST").child(Objects.requireNonNull(profileMap.get(position)
+                        mRef.child("REQUEST").child(Objects.requireNonNull(searchMap.get(position)
                                 .get("KEY")).toString()).child(firebaseUser.getUid()).removeValue();
 
-                        mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
+                        mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(position)
                                 .get("KEY")).toString()).removeValue();
                     }
                 }).create();
@@ -158,9 +158,7 @@ public class FragmentTwo extends Fragment {
                             Handler handler = new Handler(Looper.getMainLooper());
                             handler.post(new Runnable() {
                                 public void run() {
-                                    // UI code goes here
                                     ListViewUpdater();
-
                                 }
                             });
 
@@ -198,24 +196,25 @@ public class FragmentTwo extends Fragment {
 
 
     public void searchFunction(String string){
-        Log.e(TAG, "searchFunction: 1" + string );
-/*        search.clear();
-        if (profileString != null) {
-            for (String i : profileString) {
-                if (i.toLowerCase().contains(string.trim().toLowerCase())) {
-                    search.add(i);
-                    ListView listView = getActivity().findViewById(R.id.list_view);
-                    profileListAdapter adapter = new profileListAdapter(getActivity(), search);
-                     listView.setAdapter(adapter);
+        searchMap.clear();
+        if (profileMap != null) {
+            for (HashMap i : profileMap) {
+                if (i.get("NAME").toString().toLowerCase().contains(string.trim().toLowerCase())) {
+                    searchMap.add(i);
+                    ListView listView = getActivity().findViewById(R.id.list_view_two);
+                    profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
+                    listView.setAdapter(adapter);
+
                 }
             }
-            if (search.isEmpty()) {
-                ListView listView = getActivity().findViewById(R.id.list_view);
-                search.add("No Users Found");
-                profileListAdapter adapter = new profileListAdapter(getActivity(), search);
-                  listView.setAdapter(adapter);
+            if (searchMap.isEmpty()) {
+                Toast.makeText(getContext(), "No Users Found", Toast.LENGTH_SHORT).show();
+                ListView listView = getActivity().findViewById(R.id.list_view_two);
+                profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
+                listView.setAdapter(adapter);
+
             }
-        }*/
+        }
     }
 
     @Override

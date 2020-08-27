@@ -60,7 +60,7 @@ public class chatListActivity extends AppCompatActivity {
     Toolbar toolbar;
     ImageButton backButton;
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
-    private DatabaseReference ref = database.getReference(), ref2 = database.getReference(), onlineRef = database.getReference(), refMain = database.getReference().child("NEW MESSAGE");
+    private DatabaseReference countRef = database.getReference().child("UNREAD COUNT"), ref = database.getReference(), ref2 = database.getReference(), onlineRef = database.getReference(), refMain = database.getReference().child("NEW MESSAGE");
     private ValueEventListener eventListener, eventListener2, onlineListener;
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
     ListView listView;
@@ -74,6 +74,7 @@ public class chatListActivity extends AppCompatActivity {
     String typingStatus;
     TextView mTypingStatus, mOnlineStatus;
     ImageButton addImage;
+    int mCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +84,26 @@ public class chatListActivity extends AppCompatActivity {
 
         ref.child("TYPING").child(Objects.requireNonNull(intent.getStringExtra("KEY")))
                 .child(Objects.requireNonNull(mAuth.getUid())).setValue("NOT");
+
+        ValueEventListener countListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                try {
+                    mCount = Integer.parseInt(snapshot.child(mAuth.getUid()).child(intent.getStringExtra("KEY")).getValue().toString());
+                }
+                catch (Exception e){
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        };
+
+        countRef.addListenerForSingleValueEvent(countListener);
+        countRef.child(intent.getStringExtra("KEY")).child(mAuth.getUid()).setValue("0");
 
         toolbar = findViewById(R.id.tool_bar_chat);
         toolbar.setTitle("");
@@ -319,6 +340,7 @@ public class chatListActivity extends AppCompatActivity {
             public void onComplete(@Nullable DatabaseError databaseError, @NonNull DatabaseReference databaseReference) {
                 ref.child("PROFILE ORDER").child(mAuth.getUid()).child(ID).setValue(getTime());
                 ref.child("PROFILE ORDER").child(ID).child(mAuth.getUid()).setValue(getTime());
+                ref.child("UNREAD COUNT").child(mAuth.getUid()).child(ID).setValue(Integer.toString(++mCount));
             }
 
         });
@@ -349,10 +371,9 @@ public class chatListActivity extends AppCompatActivity {
             public void run() {
                 super.run();
                 try {
-                    TimeUnit.SECONDS.sleep(2);
+                    TimeUnit.SECONDS.sleep(3);
                     ref.child("TYPING").child(Objects.requireNonNull(mAuth.getUid()))
                             .child(Objects.requireNonNull(intent.getStringExtra("KEY"))).setValue("NOT");
-
 
                 } catch (InterruptedException e) {
                     e.printStackTrace();

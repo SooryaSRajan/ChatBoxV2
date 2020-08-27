@@ -64,30 +64,29 @@ public class FragmentThree extends Fragment {
                 mRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if(snapshot.child(Objects.requireNonNull(profileMap.get(position)
+                        if(snapshot.child(Objects.requireNonNull(searchMap.get(position)
                                 .get("KEY")).toString()).hasChild(firebaseUser.getUid())){
 
-                            String token = snapshot.child(Objects.requireNonNull(profileMap.get(position)
+                            String token = snapshot.child(Objects.requireNonNull(searchMap.get(position)
                                     .get("KEY")).toString()).child(firebaseUser.getUid()).getValue().toString();
 
                             if(token.contains("ACCEPTED")){
 
                                 AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
                                 builder.setTitle("Unfriend " +
-                                        profileMap.get(position).get("NAME").toString() + " ?")
+                                        searchMap.get(position).get("NAME").toString() + " ?")
                                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                             @Override
                                             public void onClick(DialogInterface dialog, int which) {
-                                                mRef.child(Objects.requireNonNull(profileMap.get(position)
+                                                mRef.child(Objects.requireNonNull(searchMap.get(position)
                                                     .get("KEY")).toString()).child(firebaseUser.getUid()).removeValue();
 
-                                                mRef.child(firebaseUser.getUid()).child(Objects.requireNonNull(profileMap.get(position)
+                                                mRef.child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(position)
                                                         .get("KEY")).toString()).removeValue();
 
                                             }
                                         }).setNegativeButton("No", null).create();
                                 builder.show();
-
                                 Toast.makeText(getActivity(), "Already Friends", Toast.LENGTH_SHORT).show();
                             }
                             else
@@ -96,11 +95,11 @@ public class FragmentThree extends Fragment {
                         else{
                             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
                             builder.setTitle("Do you want to send request to " +
-                                    profileMap.get(position).get("NAME").toString())
+                                    searchMap.get(position).get("NAME").toString())
                                     .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
-                                            mRef.child(Objects.requireNonNull(profileMap.get(position)
+                                            mRef.child(Objects.requireNonNull(searchMap.get(position)
                                                     .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("REQUESTED");
 
                                         }
@@ -181,38 +180,29 @@ public class FragmentThree extends Fragment {
 
     }
 
-    public void searchFunction(String string){
-        Log.e(TAG, "searchFunction: 1" + string );
-/*        search.clear();
-        if (profileString != null) {
-            for (String i : profileString) {
-                if (i.toLowerCase().contains(string.trim().toLowerCase())) {
-                    search.add(i);
-                    ListView listView = getActivity().findViewById(R.id.list_view);
-                    profileListAdapter adapter = new profileListAdapter(getActivity(), search);
-                     listView.setAdapter(adapter);
+    public void searchFunction(String string) {
+        Log.e(TAG, "searchFunction: 1" + string);
+        Log.e(TAG, "searchFunction: 1" + string);
+        searchMap.clear();
+        if (profileMap != null) {
+            for (HashMap i : profileMap) {
+                if (i.get("NAME").toString().toLowerCase().contains(string.trim().toLowerCase())) {
+                    searchMap.add(i);
+                    ListView listView = getActivity().findViewById(R.id.list_view_three);
+                    profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
+                    listView.setAdapter(adapter);
+
                 }
             }
-            if (search.isEmpty()) {
-                ListView listView = getActivity().findViewById(R.id.list_view);
-                search.add("No Users Found");
-                profileListAdapter adapter = new profileListAdapter(getActivity(), search);
-                  listView.setAdapter(adapter);
+            if (searchMap.isEmpty()) {
+                Toast.makeText(getContext(), "No Users Found", Toast.LENGTH_SHORT).show();
+                ListView listView = getActivity().findViewById(R.id.list_view_three);
+                profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
+                listView.setAdapter(adapter);
             }
-        }*/
+        }
     }
 
-    @Override
-    public void onDestroyView() {
-        Log.e(TAG, "onDestroyView: View Destroyed 3" );
-        super.onDestroyView();
-    }
-
-    @Override
-    public void onDetach() {
-        Log.e(TAG, "onDetach: Frag Detached 3");
-        super.onDetach();
-    }
     @Override
     public void onResume() {
         Log.e(ContentValues.TAG, "onResume: Fragment 3" );

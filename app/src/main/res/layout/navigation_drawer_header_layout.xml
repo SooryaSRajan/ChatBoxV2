@@ -5,23 +5,23 @@
     android:layout_height="150dp">
 
     <TextView
-        android:text="Hello, Soorya"
-        android:textSize="25sp"
+        android:textSize="23sp"
         android:layout_centerVertical="true"
-        android:layout_marginStart="30dp"
+        android:layout_marginStart="10dp"
         android:textColor="@color/colorYellow"
         android:layout_width="wrap_content"
+        android:layout_toEndOf="@+id/profile_pic_header"
         android:layout_height="wrap_content"
         android:id="@+id/user_name_navigation_view"/>
 
     <ImageView
-        android:layout_marginStart="40dp"
-        android:layout_marginEnd="30dp"
+        android:layout_marginStart="30dp"
+        android:layout_marginEnd="10dp"
         android:src="@drawable/ic_launcher_background"
         android:id="@+id/profile_pic_header"
+        android:layout_alignParentStart="true"
         android:layout_centerVertical="true"
-        android:layout_toRightOf="@+id/user_name_navigation_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_width="80dp"
+        android:layout_height="80dp"/>
 
 </RelativeLayout>
