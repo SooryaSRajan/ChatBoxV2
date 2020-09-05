@@ -11,10 +11,14 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -24,6 +28,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import com.example.chatbox.MessageDatabase.MessageDatabase;
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
@@ -34,11 +39,17 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.messaging.FirebaseMessagingService;
+
+import java.util.Calendar;
 
 import static com.example.chatbox.CONSTANTS.USER_NAME;
 import static com.example.chatbox.R.id.user_name_navigation_view;
 
 public class HomePageActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+    private static final String TAG =  "HomePageActicity";
+    String ACTION_START_SERVICE = "ACTION_START_SERVICE";
     DrawerLayout drawerLayout;
     ActionBarDrawerToggle actionBarDrawerToggle;
     Toolbar toolbar;
@@ -56,9 +67,12 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_page);
+
         fragment = new user_list_view_fragment(this, getSupportFragmentManager());
         mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("ONLINE");
         mRef.child("ONLINE").child(firebaseUser.getUid()).onDisconnect().setValue("OFFLINE");
+
+        updateToken(FirebaseInstanceId.getInstance().getToken());
 
         toolbar = findViewById(R.id.search_bar_tool_bar);
         toolbar.setVisibility(View.GONE);
@@ -125,7 +139,6 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
 
             }
         });
-        
     }
 
     @Override
@@ -166,7 +179,7 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         }
 
         if(item.getItemId() == R.id.home_button){
-         //   fragmentManager = getSupportFragmentManager();
+           // fragmentManager = getSupportFragmentManager();
            // fragmentTransaction = fragmentManager.beginTransaction();
             //fragmentTransaction.replace(R.id.frame_layout_main, new user_list_view_fragment(this, getSupportFragmentManager()), "USER LIST FRAGMENT");
             //fragmentTransaction.commit();
@@ -183,9 +196,11 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
             builder.setTitle("Are You Sure You Want To Logout?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    FirebaseAuth.getInstance().signOut();
                     asyncTask();
-                    mRef.child("ONLINE").child(firebaseUser.getUid()).onDisconnect().setValue("OFFLINE");
+                    mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("OFFLINE");
+                    Intent startIntent = new Intent(getApplicationContext(), NotificationComponentService.class);
+                    stopService(startIntent);
+                    FirebaseAuth.getInstance().signOut();
                     Intent intent = new Intent(HomePageActivity.this, LoginSignUpActivity.class);
                     startActivity(intent);
                     finish();
@@ -208,7 +223,40 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
             public void run() {
                 UserProfileTable database = UserProfileTable.getInstance(HomePageActivity.this);
                 database.dao().deleteAll();
+                Log.e(TAG, "run: Delete table" );
+                MessageDatabase database1 = MessageDatabase.getInstance(HomePageActivity.this);
+                database1.dao().deleteAll();
             }
         });
+    }
+
+    void startAlert(){
+        Intent intent = new Intent(HomePageActivity.this, NotificationComponentService.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), 0, intent, 0);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 100, pendingIntent);
+    }
+
+
+    public void updateToken(String mToken){
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        DatabaseReference reference = FirebaseDatabase.getInstance().getReference().child("TOKENS");
+        reference.child(firebaseUser.getUid()).setValue(mToken);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Intent intent = new Intent("ReceiveNotificationBroadcast");
+        sendBroadcast(intent);
+        Log.e(TAG, "onDestroy: " );
+
+
+        Intent broadcastIntent = new Intent(HomePageActivity.this, RestartServiceBroadcastReceiver.class);
+        PendingIntent  pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 123, broadcastIntent, 0);
+        long startTime = System.currentTimeMillis();
+        AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP, 0, pendingIntent);
+
     }
 }

@@ -1,6 +1,7 @@
 package com.example.chatbox;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
@@ -44,7 +45,7 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
     private FragmentManager fragmentManager;
     Context context;
     SwipeRefreshLayout pullToRefresh;
-
+    String ACTION_START_SERVICE = "ACTION_START_SERVICE";
     FragmentOne fragmentOne;
     FragmentTwo fragmentTwo;
     FragmentThree fragmentThree;
@@ -117,6 +118,7 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
 
         viewPager.setAdapter(adapter);
         tabLayout.setupWithViewPager(viewPager);
+
 
         return view;
     }

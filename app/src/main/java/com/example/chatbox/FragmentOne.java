@@ -54,6 +54,9 @@ public class FragmentOne extends Fragment {
     final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
     DatabaseReference mRef = FirebaseDatabase.getInstance().getReference().child("REQUEST");
     DatabaseReference unreadCount = FirebaseDatabase.getInstance().getReference().child("UNREAD COUNT");
+    DatabaseReference onlineCount = FirebaseDatabase.getInstance().getReference().child("ONLINE");
+
+    ValueEventListener countListener;
     private static ListView listView;
 
     @Override
@@ -157,7 +160,7 @@ public class FragmentOne extends Fragment {
                                 public void run() {
                                     // UI code goes here
                                     ListViewUpdater();
-//                                    UnreadCount();
+                                    UnreadCount();
 
                                 }
                             });
@@ -179,22 +182,22 @@ public class FragmentOne extends Fragment {
     }
 
     void UnreadCount(){
-        ValueEventListener listener = new ValueEventListener() {
+        countListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for(int i = 0; i<profileMap.size(); i++){
+                for(int i = 0; i< profileMap.size(); i++) {
                     try {
                         HashMap map = profileMap.get(i);
                         String count = snapshot.child(map.get("KEY").toString()).child(firebaseUser.getUid()).getValue().toString();
-                        map.put("COUNT", count);
+                        if(!count.contains("0"))
+                            map.put("COUNT", count);
                         profileMap.set(i, map);
                         searchMap.set(i, map);
-                        i++;
                     }
                     catch (Exception e){
 
                     }
-                    }
+                }
                 ListViewUpdater();
             }
 
@@ -203,19 +206,42 @@ public class FragmentOne extends Fragment {
 
             }
         };
-   //     unreadCount.addValueEventListener(listener);
+        unreadCount.addValueEventListener(countListener);
+
+        ValueEventListener onlineListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (int i = 0; i < profileMap.size(); i++) {
+                    try {
+                        HashMap mMap = profileMap.get(i);
+                        String mStatus = snapshot.child(mMap.get("KEY").toString()).getValue().toString();
+                        mMap.put("ONLINE", mStatus);
+                        profileMap.set(i, mMap);
+                        searchMap.set(i, mMap);
+
+                    } catch (Exception ignored) {
+                        Log.e(TAG, "onDataOnline: " + ignored.toString());
+                    }
+                }
+                ListViewUpdater();
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        };
+        onlineCount.addValueEventListener(onlineListener);
     }
 
-    public void ListViewUpdater(){
 
-        if(getActivity()!=null) {
+    public void ListViewUpdater() {
+
+        if (getActivity() != null) {
             profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
             listView.setAdapter(adapter);
             adapter.notifyDataSetChanged();
         }
-
     }
-
     public void searchFunction(String string){
         Log.e(TAG, "searchFunction: 1" + string ); searchMap.clear();
         if (profileMap != null) {

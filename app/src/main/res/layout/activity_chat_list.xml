@@ -14,11 +14,13 @@
         android:layout_height="wrap_content" />
 
     <ListView
+        android:transcriptMode="alwaysScroll"
+        android:stackFromBottom="true"
         android:id="@+id/chat_list_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/toolbarInclude"
-        android:layout_above="@id/typing_status"/>
+        android:layout_above="@id/status"/>
 
     <ImageButton
         android:layout_margin="15dp"
@@ -30,25 +32,37 @@
         android:layout_width="wrap_content"
         android:layout_height="?attr/actionBarSize"/>
 
-    <TextView
-        android:id="@+id/typing_status"
+    <RelativeLayout
+        android:id="@+id/status"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="13sp"
-        android:textColor="@color/colorWhite"
-        android:padding="5dp"
+        android:layout_above="@+id/message_button"
         android:layout_marginRight="3dp"
         android:layout_alignParentEnd="true"
-        android:layout_above="@+id/message_button"/>
+        android:layout_height="wrap_content">
+        <TextView
+            android:id="@+id/typing_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/colorWhite"
+            android:padding="5dp" />
+        <TextView
+            android:id="@+id/seen_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/colorWhite"
+            android:padding="5dp"/>
+    </RelativeLayout>
 
     <EditText
         android:background="@drawable/text_box"
         android:padding="13dp"
         android:layout_marginTop="15dp"
         android:layout_marginBottom="15dp"
-        android:hint="Type Message"
-        android:layout_toLeftOf="@+id/message_button"
-        android:layout_toRightOf="@+id/add_resource"
+        android:hint="Type Message..."
+        android:layout_toStartOf="@+id/message_button"
+        android:layout_toEndOf="@+id/add_resource"
         android:textColorHint="@color/colorGrey"
         android:textColor="@color/colorWhite"
         android:id="@+id/message_box"

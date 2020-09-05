@@ -2,6 +2,7 @@ package com.example.chatbox.list_adapters;
 
 import android.app.Activity;
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +16,8 @@ import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import static androidx.constraintlayout.motion.utils.Oscillator.TAG;
 
 public class chatAdapter extends BaseAdapter {
 
@@ -58,10 +61,14 @@ public class chatAdapter extends BaseAdapter {
         TextView mMessage = convertView.findViewById(R.id.chat_text_list);
         TextView mTime = convertView.findViewById(R.id.text_time_list);
 
-        mName.setText(map.get("NAME").toString());
-        mMessage.setText(map.get("MESSAGE").toString());
-        mTime.setText(map.get("TIME").toString());
-
+        try {
+            mName.setText(map.get("NAME").toString());
+            mMessage.setText(map.get("MESSAGE").toString());
+            mTime.setText(map.get("TIME").toString());
+        }
+        catch (Exception e){
+            Log.e(TAG, "getView: " + e.toString() );
+        }
 /*
         mName.setText("Hey");
         mMessage.setText("Hey");

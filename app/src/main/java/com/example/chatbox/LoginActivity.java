@@ -12,6 +12,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.example.chatbox.MessageDatabase.MessageData;
+import com.example.chatbox.MessageDatabase.MessageDatabase;
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.example.chatbox.user_profile_database.profile;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -24,6 +26,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.HashMap;
 import java.util.Objects;
 
 import static androidx.constraintlayout.widget.Constraints.TAG;
@@ -38,6 +41,7 @@ int flag1, flag2;
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login_main);
+        Log.e(TAG, "onCreate: Login Activity");
 
         signIn = findViewById(R.id.sign_in_button);
         editTextMail = findViewById(R.id.user_email_sign_in);
@@ -69,14 +73,19 @@ int flag1, flag2;
 
     }
     public void loginUser(String email, String password){
-
+        Log.e(TAG, "loginUser: InLoginUserMethod");
         FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if(task.isSuccessful()){
-                Toast.makeText(LoginActivity.this, "Logged In Successfully", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(LoginActivity.this, HomePageActivity.class);
+                    Log.e(TAG, "onComplete: Logged in" );
+                    Toast.makeText(LoginActivity.this, "Logged In Successfully", Toast.LENGTH_SHORT).show();
+                    final FirebaseAuth mAuth = FirebaseAuth.getInstance();
+
+                    final Intent intent = new Intent(LoginActivity.this, HomePageActivity.class);
                     final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER PROFILE");
+                    final DatabaseReference messageReference = FirebaseDatabase.getInstance().getReference("NEW MESSAGE");
+
                     reference.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -92,6 +101,25 @@ int flag1, flag2;
 
                         }
                     });
+
+                    messageReference.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            for (DataSnapshot snap : snapshot.getChildren()) {
+                                if (snap.child("TO").getValue().toString().contains(mAuth.getUid()) ||
+                                        snap.child("FROM").getValue().toString().contains(mAuth.getUid())) {
+                                        AsyncMessage(snap.getKey(), snap.child("FROM").getValue().toString(),
+                                                snap.child("TO").getValue().toString(), snap.child("TIME").getValue().toString(),
+                                                snap.child("MESSAGE").getValue().toString());
+                                    Log.e(TAG, "onMessageAdded! " );
+                                }
+                            }
+                        }
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+                                Log.e(TAG, "onCancelled: " + error );
+                            }
+                        });
                 startActivity(intent);
                 finish();
             }
@@ -114,5 +142,19 @@ int flag1, flag2;
 
             }
         });
+    }
+
+    void AsyncMessage(final String mKey, final String mFrom, final String mTo, final String mTime, final String mMessage){
+        Thread thread = new Thread(){
+            @Override
+            public void run() {
+                super.run();
+                MessageDatabase database = MessageDatabase.getInstance(LoginActivity.this);
+                MessageData dataObject = new MessageData(mKey, mFrom, mTo, mTime, mMessage);
+                database.dao().InsertMessage(dataObject);
+                Log.e(TAG, "run: Message Added" );
+            }
+        };
+        thread.start();
     }
 }

@@ -190,8 +190,9 @@ public class FragmentTwo extends Fragment {
 
     public String getTime(){
         Date currentTime = Calendar.getInstance().getTime();
-        DateFormat dateFormat = new SimpleDateFormat("HH:mm");
-        return dateFormat.format(currentTime);
+        //DateFormat dateFormat = new SimpleDateFormat("HH:mm");
+        //return dateFormat.format(currentTime);
+        return currentTime.toString();
     }
 
 

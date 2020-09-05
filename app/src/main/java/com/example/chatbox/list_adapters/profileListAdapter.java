@@ -9,11 +9,15 @@ import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import androidx.core.content.ContextCompat;
+
 import com.example.chatbox.R;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static androidx.constraintlayout.motion.utils.Oscillator.TAG;
 
 public class profileListAdapter extends BaseAdapter {
 
@@ -59,11 +63,32 @@ public class profileListAdapter extends BaseAdapter {
         }
 
         try{
-            TextView textView = convertView.findViewById(R.id.message_count);
-            textView.setText(list.get(position).get("COUNT").toString());
+                TextView textView = convertView.findViewById(R.id.message_count);
+                textView.setText(list.get(position).get("COUNT").toString());
         }
         catch (Exception e){
+            TextView textView = convertView.findViewById(R.id.message_count);
+            textView.setVisibility(View.GONE);
+        }
+        TextView status = convertView.findViewById(R.id.online_status_color);
+        status.setVisibility(View.GONE);
 
+        try {
+            String mStatus = list.get(position).get("ONLINE").toString();
+
+            if(mStatus.contains("ONLINE")) {
+                status.setVisibility(View.VISIBLE);
+                status.setBackground(ContextCompat.getDrawable(context, R.drawable.online));
+            }
+
+            else if(mStatus.contains("OFFLINE")){
+                status.setVisibility(View.VISIBLE);
+                status.setBackground(ContextCompat.getDrawable(context, R.drawable.offline));
+            }
+
+        }
+        catch (Exception e){
+            Log.e(TAG, "getView: " + e.toString() );
         }
         return  convertView;
 
