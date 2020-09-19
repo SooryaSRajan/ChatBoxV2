@@ -23,14 +23,6 @@ public class LoginSignUpActivity extends AppCompatActivity {
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
         if(mAuth.getCurrentUser() != null){
-            Intent bIntent = new Intent("ReceiveNotificationBroadcast");
-            sendBroadcast(bIntent);
-
-            Intent broadcastIntent = new Intent(LoginSignUpActivity.this, RestartServiceBroadcastReceiver.class);
-            PendingIntent  pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 123, broadcastIntent, 0);
-            long startTime = System.currentTimeMillis();
-            AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
-            alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, startTime, 1000 * 60, pendingIntent);
 
             Intent intent = new Intent(LoginSignUpActivity.this, HomePageActivity.class);
             startActivity(intent);
@@ -39,10 +31,10 @@ public class LoginSignUpActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_login);
 
-        Button button = findViewById(R.id.sign_up_button);
-        Button button2 = findViewById(R.id.login_button);
+        Button signUpButton = findViewById(R.id.sign_up_button);
+        Button loginButton = findViewById(R.id.login_button);
 
-        button.setOnClickListener(new View.OnClickListener() {
+        signUpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(LoginSignUpActivity.this, SignUpActivity.class);
@@ -51,7 +43,7 @@ public class LoginSignUpActivity extends AppCompatActivity {
             }
         });
 
-        button2.setOnClickListener(new View.OnClickListener() {
+        loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(LoginSignUpActivity.this, LoginActivity.class);

@@ -5,15 +5,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
+import android.app.Notification;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,24 +20,19 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
-import android.widget.Adapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.chatbox.FCMNotification.APIService;
-import com.example.chatbox.FCMNotification.Data;
-import com.example.chatbox.FCMNotification.NotificationClient;
-import com.example.chatbox.FCMNotification.Sender;
+import com.example.chatbox.FCMNotifications.APIInterface;
+import com.example.chatbox.FCMNotifications.NotificationBody;
+import com.example.chatbox.FCMNotifications.NotificationContent;
+import com.example.chatbox.FCMNotifications.RetrofitClient;
 import com.example.chatbox.MessageDatabase.MessageData;
 import com.example.chatbox.MessageDatabase.MessageDatabase;
 import com.example.chatbox.list_adapters.chatAdapter;
-import com.google.android.gms.common.api.Api;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -47,25 +40,35 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
-import org.w3c.dom.Text;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import static androidx.constraintlayout.widget.Constraints.TAG;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 import static com.example.chatbox.CONSTANTS.USER_NAME;
 
 public class chatListActivity extends AppCompatActivity {
@@ -75,7 +78,8 @@ public class chatListActivity extends AppCompatActivity {
     ImageButton backButton;
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
     private DatabaseReference countRef = database.getReference().child("UNREAD COUNT"), ref = database.getReference(),
-            ref2 = database.getReference(), onlineRef = database.getReference(), refMain = database.getReference().child("UNREAD MESSAGE");
+            ref2 = database.getReference(), onlineRef = database.getReference(), refMain = database.getReference().child("UNREAD MESSAGE"),
+            refToken;
 
     private ValueEventListener eventListener, eventListener2, onlineListener;
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
@@ -90,18 +94,45 @@ public class chatListActivity extends AppCompatActivity {
     String typingStatus;
     TextView mTypingStatus, mOnlineStatus, mSeenStatus;
     ImageButton addImage;
-    String userKey, userName;
+    String userKey, userName, token;
     int mCount = 0;
     int otherCount;
+    NotificationContent content;
+    NotificationBody notificationBody;
+    RetrofitClient client;
+    APIInterface apiInterface;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat_list);
+
         final Intent intent = getIntent();
-        AsyncMessage();
+
         userKey = intent.getStringExtra("KEY");
         userName = intent.getStringExtra("NAME");
+
+        try {
+            refToken = database.getReference().child("TOKENS").child(userKey);
+            database.getReference().child("TOKENS").child(mAuth.getUid()).setValue(FirebaseInstanceId.getInstance().getToken());
+        }
+        catch (Exception e){
+            Log.e(TAG, "onCreate: Token "+e.toString() );
+        }
+
+        refToken.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                token = snapshot.getValue().toString();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+        AsyncMessage();
         ref.child("TYPING").child(Objects.requireNonNull(intent.getStringExtra("KEY")))
                 .child(Objects.requireNonNull(mAuth.getUid())).setValue("NOT");
 
@@ -295,6 +326,7 @@ public class chatListActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
 
         writeToFirebase(map, intent.getStringExtra("KEY"));
+        writeNotification(Message, USER_NAME);
     }
 
     @Override
@@ -307,8 +339,15 @@ public class chatListActivity extends AppCompatActivity {
 
     public String getTime(){
         Date currentTime = Calendar.getInstance().getTime();
-        DateFormat dateFormat = new SimpleDateFormat("HH:mm");
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return dateFormat.format(currentTime);
+    }
+
+
+    public String getTimeHM(String string){
+        Date currentTime = Calendar.getInstance().getTime();
+        DateFormat dateFormat = new SimpleDateFormat("HH:mm");
+        return dateFormat.format(string);
     }
 
     public String getDateTime(){
@@ -323,6 +362,7 @@ public class chatListActivity extends AppCompatActivity {
                 ref.child("PROFILE ORDER").child(mAuth.getUid()).child(ID).setValue(getDateTime());
                 ref.child("PROFILE ORDER").child(ID).child(mAuth.getUid()).setValue(getDateTime());
                 ref.child("UNREAD COUNT").child(mAuth.getUid()).child(ID).setValue(Integer.toString(++mCount));
+
                 AsyncMessage(temp, databaseReference.getKey());
             }
 
@@ -394,14 +434,6 @@ public class chatListActivity extends AppCompatActivity {
         super.onDestroy();
         refMain.removeEventListener(eventListener);
 
-        Intent broadcastIntent = new Intent(chatListActivity.this, RestartServiceBroadcastReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 123, broadcastIntent, 0);
-        long startTime = System.currentTimeMillis();
-        AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setExact(AlarmManager.RTC_WAKEUP, 0, pendingIntent);
-
-        Intent intent = new Intent("ReceiveNotificationBroadcast");
-        sendBroadcast(intent);
         mCount = 0;
     }
 
@@ -409,6 +441,7 @@ public class chatListActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         countRef.child(userKey).child(mAuth.getUid()).setValue("0");
+        database.getReference().child("TOKENS").child(mAuth.getUid()).setValue(FirebaseInstanceId.getInstance().getToken());
 
     }
 
@@ -440,6 +473,14 @@ public class chatListActivity extends AppCompatActivity {
                     }
                 }
 
+                Collections.sort(mList, new Comparator<HashMap>() {
+                    @Override
+                    public int compare(HashMap o1, HashMap o2) {
+                        return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
+                    }
+                });
+
+
                 Handler handler = new Handler(Looper.getMainLooper());
                 handler.post(new Runnable() {
                     public void run() {
@@ -456,6 +497,8 @@ public class chatListActivity extends AppCompatActivity {
                                 if (snapshot.exists()) {
                                     try {
                                         removeKey.clear();
+                                        countRef.child(userKey).child(mAuth.getUid()).setValue("0");
+
                                         for (DataSnapshot snap : snapshot.getChildren()) {
                                             if (snap.child("TO").getValue().toString().contains(mAuth.getUid()) &&
                                                     snap.child("FROM").getValue().toString().contains(userKey)) {
@@ -464,12 +507,11 @@ public class chatListActivity extends AppCompatActivity {
                                                 map.put("MESSAGE", snap.child("MESSAGE").getValue());
                                                 map.put("FROM", snap.child("FROM").getValue());
                                                 map.put("TO", snap.child("TO").getValue());
-                                                map.put("TIME", snap.child("TIME").getValue());
+                                                map.put("TIME", snap.child("TIME").getValue().toString());
                                                 mList.add(map);
                                                 Log.e(TAG, "onDataChange: Senders Message" + snap.getKey());
                                                 AsyncMessage(map, snap.getKey());
                                                 removeKey.add(snap.getKey());
-                                                countRef.child(userKey).child(mAuth.getUid()).setValue("0");
                                             }
                                         }
                                         removeChild(removeKey);
@@ -519,5 +561,46 @@ public class chatListActivity extends AppCompatActivity {
         };
         thread.start();
     }
+
+    public void writeNotification(String Message, String Name){
+        content = new NotificationContent();
+        notificationBody = new NotificationBody();
+
+        content.setBody(Message);
+        content.setTitle(Name + ": " + userName);
+        notificationBody.setNotificationContent(content);
+        notificationBody.setToken(token);
+
+        apiInterface = RetrofitClient.getClient().create(APIInterface.class);
+        retrofit2.Call<ResponseBody> responseBodyCall = apiInterface.sendNotification(notificationBody);
+        responseBodyCall.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                Log.e(TAG, "onResponse: " + call.toString() + " Response: " + response.toString() + " Body " + response.body() + "Code" + response.code() );
+                if(response.code() == 400){
+                    try {
+                        Log.e(TAG, "onResponse: Error Body " + response.errorBody().string() );
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    try {
+                        String str = response.errorBody().string();
+                            JSONObject jObjError = new JSONObject(str);
+                            Toast.makeText(chatListActivity.this, jObjError.getString("message"), Toast.LENGTH_LONG).show();
+                        } catch (JSONException | IOException e) {
+                            Log.e(TAG, "onResponse: JSON Exception" + e.toString() );
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+
+            }
+        });
+
+    }
+
 }
 

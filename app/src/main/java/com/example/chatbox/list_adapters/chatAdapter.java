@@ -14,7 +14,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.chatbox.R;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 
 import static androidx.constraintlayout.motion.utils.Oscillator.TAG;
@@ -61,20 +65,43 @@ public class chatAdapter extends BaseAdapter {
         TextView mMessage = convertView.findViewById(R.id.chat_text_list);
         TextView mTime = convertView.findViewById(R.id.text_time_list);
 
+        /***Date And Time Formatter For List View Chat**/
+        String time = map.get("TIME").toString();
+        try {
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date date = format.parse(time);
+            Date currentTime = Calendar.getInstance().getTime();
+
+            format = new SimpleDateFormat("yyyy-MM-dd");
+            String chatDate = format.format(date);
+            String curDate = format.format(currentTime);
+
+            if(chatDate.contains(curDate)){
+                format = new SimpleDateFormat("hh:mm");
+                time = format.format(date);
+                Log.e(TAG, "Adapter Time Matches");
+            }
+
+            else{
+                format = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+                time = format.format(date);
+                Log.e(TAG, "Time doesnt Match" );
+            }
+        }
+
+        catch (Exception e){
+            Log.e(TAG, "Chat Adapter Time Exception: " + e.toString() );
+        }
+
         try {
             mName.setText(map.get("NAME").toString());
             mMessage.setText(map.get("MESSAGE").toString());
-            mTime.setText(map.get("TIME").toString());
+            mTime.setText(time);
         }
         catch (Exception e){
             Log.e(TAG, "getView: " + e.toString() );
         }
-/*
-        mName.setText("Hey");
-        mMessage.setText("Hey");
-        mTime.setText("Hey");
 
-*/
         return convertView;
     }
 }

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="@color/colorBlack"
+    android:weightSum="4"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:padding="15dp"
+        android:id="@+id/unfollow_title"
+        android:textColor="@color/colorWhite"
+        android:layout_weight="1"
+        android:textSize="25sp"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:paddingLeft="30dp"
+        android:paddingRight="30dp"
+        android:id="@+id/unfollow_sub_title"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:textColor="@color/colorGrey"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <Button
+        android:id="@+id/unfollow_confirm"
+        android:textColor="@color/colorRed"
+        android:background="@color/colorTransparent"
+        android:layout_weight="1"
+        android:text="@string/unfriend"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <Button
+        android:id="@+id/unfollow_cancel"
+        android:textColor="@color/colorWhite"
+        android:text="@string/cancel"
+        android:background="@color/colorTransparent"
+        android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+</LinearLayout>

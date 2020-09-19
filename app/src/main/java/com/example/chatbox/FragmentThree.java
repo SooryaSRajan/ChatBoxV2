@@ -1,5 +1,6 @@
 package com.example.chatbox;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.DialogInterface;
@@ -19,7 +20,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.chatbox.list_adapters.profileListAdapter;
@@ -45,23 +48,100 @@ public class FragmentThree extends Fragment {
     private List<HashMap> profileMap = new ArrayList<>(), searchMap = new ArrayList<>();
     final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
     DatabaseReference mRef = FirebaseDatabase.getInstance().getReference().child("REQUEST");
+    DatabaseReference mDateRef = FirebaseDatabase.getInstance().getReference().child("PROFILE ORDER");
     private static ListView listView;
-    SwipeRefreshLayout pullToRefresh;
-    ViewTreeObserver.OnScrollChangedListener mOnScrollChangedListener;
+    private TextView noUserFound;
+    private View view;
+    private View requestBuilderView;
+    private Button mCancel;
+    private TextView mUnfollowBuilderTitle, mUnfollowBuilderSubTitle;
+    private Button mFriend, mFriendCancel;
+    private TextView mfollowBuilderTitle, mFollowerBuilderSubTitle;
+    private int currentListPosition = 0;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
         // Inflate the layout for this fragment
-        final View view = inflater.inflate(R.layout.fragment_three, container, false);
+        view = inflater.inflate(R.layout.fragment_three, container, false);
+        noUserFound = view.findViewById(R.id.no_user_found_3);
+        noUserFound.setVisibility(View.GONE);
+
+        View builderView = getLayoutInflater().inflate(R.layout.unfollow_alert_layout, null);
+        requestBuilderView = getLayoutInflater().inflate(R.layout.request_alert_layout, null);
+
+        final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setView(builderView);
+        final AlertDialog alertDialog = builder.create();
+
+        final AlertDialog.Builder friendBuilder = new AlertDialog.Builder(getActivity());
+        friendBuilder.setView(requestBuilderView);
+        final AlertDialog alertDialogFriend = friendBuilder.create();
+
+        Button mUnfollow = builderView.findViewById(R.id.unfollow_confirm);
+        mCancel = builderView.findViewById(R.id.unfollow_cancel);
+        mUnfollowBuilderSubTitle = builderView.findViewById(R.id.unfollow_sub_title);
+        mUnfollowBuilderTitle = builderView.findViewById(R.id.unfollow_title);
+
+
+        mFriend = requestBuilderView.findViewById(R.id.friend_confirm);
+        mFriendCancel = requestBuilderView.findViewById(R.id.friend_cancel);
+        mfollowBuilderTitle = requestBuilderView.findViewById(R.id.friend_title);
+        mFollowerBuilderSubTitle = requestBuilderView.findViewById(R.id.friend_subtitle);
+
+        mFriend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mRef.child(Objects.requireNonNull(searchMap.get(currentListPosition)
+                        .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("REQUESTED");
+                alertDialogFriend.dismiss();
+
+            }
+        });
+
+        mFriendCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                alertDialogFriend.dismiss();
+            }
+        });
+
+
+        mUnfollow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mRef.child(Objects.requireNonNull(searchMap.get(currentListPosition)
+                        .get("KEY")).toString()).child(firebaseUser.getUid()).removeValue();
+
+                mRef.child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(currentListPosition)
+                        .get("KEY")).toString()).removeValue();
+
+                mDateRef.child(Objects.requireNonNull(searchMap.get(currentListPosition)
+                        .get("KEY")).toString()).child(firebaseUser.getUid()).removeValue();
+
+                mDateRef.child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(currentListPosition)
+                        .get("KEY")).toString()).removeValue();
+                alertDialog.dismiss();
+
+            }
+        });
+
+        mCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                alertDialog.dismiss();
+            }
+        });
+
         listView = view.findViewById(R.id.list_view_three);
         asyncTask();
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
-
+                currentListPosition = position;
                 mRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @SuppressLint("SetTextI18n")
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if(snapshot.child(Objects.requireNonNull(searchMap.get(position)
@@ -72,39 +152,22 @@ public class FragmentThree extends Fragment {
 
                             if(token.contains("ACCEPTED")){
 
-                                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                                builder.setTitle("Unfriend " +
-                                        searchMap.get(position).get("NAME").toString() + " ?")
-                                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(DialogInterface dialog, int which) {
-                                                mRef.child(Objects.requireNonNull(searchMap.get(position)
-                                                    .get("KEY")).toString()).child(firebaseUser.getUid()).removeValue();
+                                mUnfollowBuilderTitle.setText("Unfriend, " + searchMap.get(position).get("NAME").toString() + "?");
+                                mUnfollowBuilderSubTitle.setText("Are you sure you want to unfriend " +
+                                        searchMap.get(position).get("NAME").toString() + "?" +"\nYou " +
+                                        "won't be able to view chats or text unless you're friends");
+                                alertDialog.show();
 
-                                                mRef.child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(position)
-                                                        .get("KEY")).toString()).removeValue();
-
-                                            }
-                                        }).setNegativeButton("No", null).create();
-                                builder.show();
-                                Toast.makeText(getActivity(), "Already Friends", Toast.LENGTH_SHORT).show();
                             }
                             else
                             Toast.makeText(getActivity(), "Request already sent", Toast.LENGTH_SHORT).show();
                         }
-                        else{
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                            builder.setTitle("Do you want to send request to " +
-                                    searchMap.get(position).get("NAME").toString())
-                                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            mRef.child(Objects.requireNonNull(searchMap.get(position)
-                                                    .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("REQUESTED");
 
-                                        }
-                                    }).setNegativeButton("No", null).create();
-                            builder.show();
+                        else{
+                            mfollowBuilderTitle.setText("Request " + searchMap.get(position).get("NAME").toString() + "?");
+                            mFollowerBuilderSubTitle.setText("Are you sure you want to send request to " + searchMap.get(position).get("NAME").toString() + "? \nYou won't be able to cancel your request once its sent");
+                            alertDialogFriend.show();
+
 
                         }
                     }
@@ -184,10 +247,12 @@ public class FragmentThree extends Fragment {
         Log.e(TAG, "searchFunction: 1" + string);
         Log.e(TAG, "searchFunction: 1" + string);
         searchMap.clear();
+        noUserFound = view.findViewById(R.id.no_user_found_3);
         if (profileMap != null) {
             for (HashMap i : profileMap) {
                 if (i.get("NAME").toString().toLowerCase().contains(string.trim().toLowerCase())) {
                     searchMap.add(i);
+                    noUserFound.setVisibility(View.GONE);
                     ListView listView = getActivity().findViewById(R.id.list_view_three);
                     profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
                     listView.setAdapter(adapter);
@@ -195,7 +260,7 @@ public class FragmentThree extends Fragment {
                 }
             }
             if (searchMap.isEmpty()) {
-                Toast.makeText(getContext(), "No Users Found", Toast.LENGTH_SHORT).show();
+                noUserFound.setVisibility(View.VISIBLE);
                 ListView listView = getActivity().findViewById(R.id.list_view_three);
                 profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
                 listView.setAdapter(adapter);
@@ -203,6 +268,10 @@ public class FragmentThree extends Fragment {
         }
     }
 
+    public void SearchBackPressed(){
+        noUserFound.setVisibility(View.GONE);
+
+    }
     @Override
     public void onResume() {
         Log.e(ContentValues.TAG, "onResume: Fragment 3" );

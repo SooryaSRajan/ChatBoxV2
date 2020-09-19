@@ -17,7 +17,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.chatbox.list_adapters.profileListAdapter;
@@ -48,13 +51,19 @@ public class FragmentTwo extends Fragment {
     private List<HashMap> profileMap = new ArrayList<>(), searchMap = new ArrayList<>(), mainMap = new ArrayList<>();
     private final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
     private DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
-    private static ListView listView;
+    private ListView listView;
+    private ValueEventListener listener;
+    private Boolean listenerFlag = true;
+    private TextView noUserFound;
+    private View view;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        final View view = inflater.inflate(R.layout.fragment_two, container, false);
+        view = inflater.inflate(R.layout.fragment_two, container, false);
+        noUserFound = view.findViewById(R.id.no_user_found_2);
+        noUserFound.setVisibility(View.GONE);
 
         listView = view.findViewById(R.id.list_view_two);
         asyncTask();
@@ -136,11 +145,12 @@ public class FragmentTwo extends Fragment {
                         }
                     }
 
-                    mRef.addValueEventListener(new ValueEventListener() {
+                   listener = new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
                             profileMap.clear();
                             searchMap.clear();
+                            if(listenerFlag)
                             for (int i = 0; i < mainMap.size(); i++) {
                                 if (snapshot.child("REQUEST").child(firebaseUser.getUid()).hasChild(Objects.requireNonNull(mainMap.get(i).get("KEY"))
                                         .toString()) ) {
@@ -167,11 +177,13 @@ public class FragmentTwo extends Fragment {
                         public void onCancelled(@NonNull DatabaseError error) {
 
                         }
-                    });
+                    };
+                    mRef.addValueEventListener(listener);
                 }
                 catch(Exception e) {
                     Log.e("Async List View", e.toString());
                 }
+
             }
         };
         thread.start();
@@ -198,10 +210,13 @@ public class FragmentTwo extends Fragment {
 
     public void searchFunction(String string){
         searchMap.clear();
+        noUserFound = view.findViewById(R.id.no_user_found_2);
+        listenerFlag = false;
         if (profileMap != null) {
             for (HashMap i : profileMap) {
                 if (i.get("NAME").toString().toLowerCase().contains(string.trim().toLowerCase())) {
                     searchMap.add(i);
+                    noUserFound.setVisibility(View.GONE);
                     ListView listView = getActivity().findViewById(R.id.list_view_two);
                     profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
                     listView.setAdapter(adapter);
@@ -209,7 +224,7 @@ public class FragmentTwo extends Fragment {
                 }
             }
             if (searchMap.isEmpty()) {
-                Toast.makeText(getContext(), "No Users Found", Toast.LENGTH_SHORT).show();
+                noUserFound.setVisibility(View.VISIBLE);
                 ListView listView = getActivity().findViewById(R.id.list_view_two);
                 profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
                 listView.setAdapter(adapter);
@@ -217,7 +232,12 @@ public class FragmentTwo extends Fragment {
             }
         }
     }
+    public void SearchBackPressed(){
+        noUserFound.setVisibility(View.GONE);
+        mRef.addValueEventListener(listener);
+        listenerFlag = true;
 
+    }
     @Override
     public void onDestroyView() {
         Log.e(TAG, "onDestroyView: View Destroyed 2" );

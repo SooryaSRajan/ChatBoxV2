@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -74,13 +75,12 @@ int nameFlag = 0, emailFlag = 0, passwordFlag = 0, passwordTwoFlag = 0;
                     nameFlag = 0;
                 }
                 mEmail = emailId.getText().toString();
-                Pattern pattern = Pattern.compile("\\\\b[\\\\w.%-]+@[-.\\\\w]+\\\\.[A-Za-z]{2,4}\\\\b", Pattern.CASE_INSENSITIVE);
-                Matcher matcher = pattern.matcher(mEmail);
+                Pattern pattern = Patterns.EMAIL_ADDRESS;
 
                 if (mEmail.isEmpty()) {
                     emailIdWarning.setText("* Email Id Empty");
                     emailFlag++;
-                } else if (matcher.find()) {
+                } else if (!pattern.matcher(mEmail).matches()) {
                     emailIdWarning.setText("* Invalid Email");
                     emailFlag++;
                 } else {
@@ -148,7 +148,7 @@ int nameFlag = 0, emailFlag = 0, passwordFlag = 0, passwordTwoFlag = 0;
                                     finish();
 
                                 } else {
-                                    Toast.makeText(SignUpActivity.this, "Shit", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(SignUpActivity.this, "Account Creation Failed, please try again later", Toast.LENGTH_SHORT).show();
                                     if (task.getException().getMessage().equals("The email address is already in use by another account.")) {
                                         Log.e("MAINLOGGG", "onComplete: " + task.getException().getMessage());
                                     }

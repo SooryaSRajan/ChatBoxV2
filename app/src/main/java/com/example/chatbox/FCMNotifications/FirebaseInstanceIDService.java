@@ -1,5 +1,6 @@
-package com.example.chatbox.FCMNotification;
+package com.example.chatbox.FCMNotifications;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
@@ -13,11 +14,13 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.iid.FirebaseInstanceIdService;
 import com.google.firebase.messaging.FirebaseMessagingService;
 
+@SuppressLint("Registered")
 public class FirebaseInstanceIDService extends FirebaseMessagingService {
-
+String token;
     @Override
     public void onNewToken(@NonNull String s) {
         super.onNewToken(s);
+        token = s;
 
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if(firebaseUser!=null){
@@ -31,4 +34,6 @@ public class FirebaseInstanceIDService extends FirebaseMessagingService {
         assert firebaseUser != null;
         reference.child(firebaseUser.getUid()).setValue(mToken);
     }
+
+
 }

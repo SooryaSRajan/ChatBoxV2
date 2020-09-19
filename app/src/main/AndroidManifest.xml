@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.chatbox">
+
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <application
@@ -12,7 +13,6 @@
         android:testOnly="false"
         android:theme="@style/AppTheme">
         <activity android:name=".ProfilePictureActivity" />
-
         <activity
             android:name=".chatListActivity"
             android:windowSoftInputMode="adjustResize" />
@@ -22,22 +22,25 @@
         <activity android:name=".LoginSignUpActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".NotificationComponentService"
-            android:exported="false"/>
 
-        <receiver android:name=".RestartServiceBroadcastReceiver"
-            android:exported="true"
-            android:enabled="true">
+        <service android:name=".FCMNotifications.MyFireBaseMessagingService">
             <intent-filter>
-                <action android:name="ReceiveNotificationBroadcast"/>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
-        </receiver>
+
+        </service>
+
+        <service android:name=".FCMNotifications.FirebaseInstanceIDService">
+            <intent-filter>
+                <action android:name="com.google.firebase.INSTANCE_ID_EVENT"/>
+            </intent-filter>
+
+        </service>
+
     </application>
 
 </manifest>

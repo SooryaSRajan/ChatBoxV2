@@ -164,7 +164,6 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
             toolbar = findViewById(R.id.tool_bar);
             toolbar.setVisibility(View.GONE);
             layout.setVisibility(View.GONE);
-
             toolbar = findViewById(R.id.search_bar_tool_bar);
             toolbar.setVisibility(View.VISIBLE);
 
@@ -247,16 +246,9 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Intent intent = new Intent("ReceiveNotificationBroadcast");
-        sendBroadcast(intent);
         Log.e(TAG, "onDestroy: " );
 
 
-        Intent broadcastIntent = new Intent(HomePageActivity.this, RestartServiceBroadcastReceiver.class);
-        PendingIntent  pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 123, broadcastIntent, 0);
-        long startTime = System.currentTimeMillis();
-        AlarmManager alarmManager = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setExact(AlarmManager.RTC_WAKEUP, 0, pendingIntent);
 
     }
 }

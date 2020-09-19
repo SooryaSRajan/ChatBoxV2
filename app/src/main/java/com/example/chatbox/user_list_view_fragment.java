@@ -1,5 +1,6 @@
 package com.example.chatbox;
 
+import android.app.ActionBar;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -7,6 +8,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -23,6 +25,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import com.example.chatbox.user_profile_database.UserProfileTable;
@@ -73,7 +76,7 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_user_list_view_fragment, container, false);
+        final View view = inflater.inflate(R.layout.fragment_user_list_view_fragment, container, false);
         PageAdapter adapter = new PageAdapter(fragmentManager, 0);
         TabLayout tabLayout = view.findViewById(R.id.tab_layout);
 
@@ -105,6 +108,7 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
                     fragmentTwo.searchFunction(s.toString());
 
 
+
                 else if(viewPager.getCurrentItem() == 2)
                     fragmentThree.searchFunction(s.toString());
 
@@ -112,7 +116,23 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
 
             @Override
             public void afterTextChanged(Editable s) {
+                Toolbar toolbar = getActivity().findViewById(R.id.search_bar_tool_bar);
 
+                Log.e(TAG, "afterTextChanged: Called" );
+                if(toolbar.getVisibility() == View.GONE){
+                    Log.e(TAG, "afterTextChanged: Button Gone" );
+                    if(viewPager.getCurrentItem() == 0)
+                        fragmentOne.SearchBackPressed();
+
+                    else if(viewPager.getCurrentItem() == 1)
+                        fragmentTwo.SearchBackPressed();
+
+
+
+                    else if(viewPager.getCurrentItem() == 2)
+                        fragmentThree.SearchBackPressed();
+
+                }
             }
         });
 
@@ -136,7 +156,6 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
     }
 
     public  void refreshData(){
-       // tableDelete();
         mMapList.clear();
         final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER PROFILE");
         reference.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -175,7 +194,6 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
                     handler.post(new Runnable() {
                         public void run() {
                             // UI code goes here
-                            Toast.makeText(getActivity(), "Hello", Toast.LENGTH_SHORT).show();
                             fragmentOne.asyncTask();
                             fragmentOne.ListViewUpdater();
                             fragmentTwo.asyncTask();
@@ -192,21 +210,6 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
             }
         };
         thread.start();
-    }
-
-    private void tableDelete() {
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    UserProfileTable database = UserProfileTable.getInstance(getActivity());
-                    database.dao().deleteAll();
-                } catch (Exception e) {
-                    Log.e("Table Deleter", e.toString());
-                }
-
-            }
-        });
     }
 
 }

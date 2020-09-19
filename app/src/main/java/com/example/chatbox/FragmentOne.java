@@ -1,33 +1,25 @@
 package com.example.chatbox;
 
 import android.content.ContentValues;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.chatbox.list_adapters.profileListAdapter;
 import com.example.chatbox.user_profile_database.UserProfileTable;
@@ -41,7 +33,8 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.EventListener;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -49,14 +42,22 @@ import java.util.Objects;
 import static androidx.constraintlayout.widget.Constraints.TAG;
 
 public class FragmentOne extends Fragment {
+    FrameLayout relativeLayout;
+    ValueEventListener onlineListener;
+    ValueEventListener mainListener;
+    TextView noUserFound;
     private List<profile> profileList = null;
     private List<HashMap> profileMap = new ArrayList<>(), searchMap = new ArrayList<>(), mainMap = new ArrayList<>();
     final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
     DatabaseReference mRef = FirebaseDatabase.getInstance().getReference().child("REQUEST");
     DatabaseReference unreadCount = FirebaseDatabase.getInstance().getReference().child("UNREAD COUNT");
     DatabaseReference onlineCount = FirebaseDatabase.getInstance().getReference().child("ONLINE");
+    View view;
+    DatabaseReference mOrderRef = FirebaseDatabase.getInstance().getReference().child("PROFILE ORDER").child(firebaseUser.getUid());
+    private ValueEventListener listener;
+    Boolean listenerFlag = true;
 
-    ValueEventListener countListener;
+    private ValueEventListener countListener;
     private static ListView listView;
 
     @Override
@@ -72,9 +73,11 @@ public class FragmentOne extends Fragment {
 
         Log.e(TAG, "onCreateView: Frag 1" );
         // Inflate the layout for this fragment
-        final View view = inflater.inflate(R.layout.fragment_one, container, false);
+        view = inflater.inflate(R.layout.fragment_one, container, false);
         listView = view.findViewById(R.id.list_view);
         asyncTask();
+        noUserFound = view.findViewById(R.id.no_user_found_1);
+        noUserFound.setVisibility(View.GONE);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -125,53 +128,51 @@ public class FragmentOne extends Fragment {
                         }
                     }
 
-
-                    ValueEventListener listener = new ValueEventListener() {
+                    mainListener = new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
                             profileMap.clear();
                             searchMap.clear();
-                            for (int i = 0; i < mainMap.size(); i++) {
-                                try {
-                                    Log.e(TAG, "Frag One Data Change" );
-                                    if (snapshot.child(firebaseUser.getUid()).hasChild(Objects.requireNonNull(mainMap.get(i).get("KEY"))
-                                            .toString())) {
-                                        String token = snapshot.child(firebaseUser.getUid()).child(Objects.requireNonNull(mainMap.get(i).get("KEY"))
-                                                .toString()).getValue().toString();
+                            if(listenerFlag) {
+                                for (int i = 0; i < mainMap.size(); i++) {
+                                    try {
+                                        Log.e(TAG, "Frag One Data Change");
+                                        if (snapshot.child(firebaseUser.getUid()).hasChild(Objects.requireNonNull(mainMap.get(i).get("KEY"))
+                                                .toString())) {
+                                            String token = snapshot.child(firebaseUser.getUid()).child(Objects.requireNonNull(mainMap.get(i).get("KEY"))
+                                                    .toString()).getValue().toString();
 
-                                        if (token.contains("ACCEPTED")) {
-                                            profileMap.add(mainMap.get(i));
-                                            searchMap.add(mainMap.get(i));
+                                            if (token.contains("ACCEPTED")) {
+                                                profileMap.add(mainMap.get(i));
+                                                searchMap.add(mainMap.get(i));
+                                            }
                                         }
+                                    } catch (Exception e) {
+
                                     }
                                 }
-                                catch (Exception e){
 
-                                }
-                            }/*
-                            for(DataSnapshot snap : snapshot.child("PROFILE ORDER").child(firebaseUser.getUid()).getChildren()) {
-                                Log.e(TAG, "Profile Order " + snap.getValue());
-                                Log.e(TAG, "Profile Order Key " + snap.getKey());
+                                Handler handler = new Handler(Looper.getMainLooper());
+                                handler.post(new Runnable() {
+                                    public void run() {
+                                        // UI code goes here
+                                        ListViewUpdater();
+                                        UnreadCount();
 
+                                        if (listener != null)
+                                            mOrderRef.addValueEventListener(listener);
+
+                                    }
+                                });
                             }
-*/
-                            Handler handler = new Handler(Looper.getMainLooper());
-                            handler.post(new Runnable() {
-                                public void run() {
-                                    // UI code goes here
-                                    ListViewUpdater();
-                                    UnreadCount();
-
-                                }
-                            });
-
                         }
                         @Override
                         public void onCancelled(@NonNull DatabaseError error) {
 
                         }
+
                     };
-                    mRef.addValueEventListener(listener);
+                    mRef.addValueEventListener(mainListener);
 
                 }
                 catch(Exception e){
@@ -185,6 +186,7 @@ public class FragmentOne extends Fragment {
         countListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if(listenerFlag)
                 for(int i = 0; i< profileMap.size(); i++) {
                     try {
                         HashMap map = profileMap.get(i);
@@ -199,6 +201,7 @@ public class FragmentOne extends Fragment {
                     }
                 }
                 ListViewUpdater();
+                ListViewSorter();
             }
 
             @Override
@@ -208,9 +211,10 @@ public class FragmentOne extends Fragment {
         };
         unreadCount.addValueEventListener(countListener);
 
-        ValueEventListener onlineListener = new ValueEventListener() {
+         onlineListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if(listenerFlag)
                 for (int i = 0; i < profileMap.size(); i++) {
                     try {
                         HashMap mMap = profileMap.get(i);
@@ -218,6 +222,8 @@ public class FragmentOne extends Fragment {
                         mMap.put("ONLINE", mStatus);
                         profileMap.set(i, mMap);
                         searchMap.set(i, mMap);
+                        Log.e(TAG, "onDataOnline: Called") ;
+
 
                     } catch (Exception ignored) {
                         Log.e(TAG, "onDataOnline: " + ignored.toString());
@@ -235,18 +241,35 @@ public class FragmentOne extends Fragment {
 
 
     public void ListViewUpdater() {
+        Boolean flag = false;
+        try{
+            Toolbar toolbar = getActivity().findViewById(R.id.search_bar_tool_bar);
+            if(toolbar.getVisibility() == View.VISIBLE){
+                flag = true;
+            }
+            else {
+                flag = false;
+            }
+        }
+        catch (Exception e){
 
-        if (getActivity() != null) {
+        }
+        if (getActivity() != null && flag == false) {
             profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
             listView.setAdapter(adapter);
             adapter.notifyDataSetChanged();
         }
     }
+
     public void searchFunction(String string){
         Log.e(TAG, "searchFunction: 1" + string ); searchMap.clear();
+
+        listenerFlag = false;
+        noUserFound = view.findViewById(R.id.no_user_found_1);
         if (profileMap != null) {
             for (HashMap i : profileMap) {
                 if (i.get("NAME").toString().toLowerCase().contains(string.trim().toLowerCase())) {
+                    noUserFound.setVisibility(View.GONE);
                     searchMap.add(i);
                     ListView listView = getActivity().findViewById(R.id.list_view);
                     profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
@@ -255,7 +278,7 @@ public class FragmentOne extends Fragment {
                 }
             }
             if (searchMap.isEmpty()) {
-                Toast.makeText(getContext(), "No Users Found", Toast.LENGTH_SHORT).show();
+                noUserFound.setVisibility(View.VISIBLE);
                 ListView listView = getActivity().findViewById(R.id.list_view);
                 profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
                 listView.setAdapter(adapter);
@@ -264,8 +287,75 @@ public class FragmentOne extends Fragment {
         }
     }
 
+    public void ListViewSorter(){
+        listener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if(listenerFlag)
+                for (DataSnapshot snap : snapshot.getChildren()) {
+                    Log.e(TAG, "onDataChange: sorter" + snap.getKey());
+                    for (int j = 0; j <= profileMap.size() - 1; j++) {
+                        HashMap map = profileMap.get(j);
+                        if (snap.getKey().contains(map.get("KEY").toString())) {
+                            Log.e(TAG, "onDataChange Sorter: Data Add Error");
+                            map.put("DATE", snap.getValue().toString());
+                        try {
+                            searchMap.set(j, map);
+                            profileMap.set(j, map);
+                        }
+                        catch (Exception e){
+
+                        }
+
+                        }
+                    }
+                }
+
+                Collections.sort(profileMap, new Comparator<HashMap>() {
+                    @Override
+                    public int compare(HashMap o1, HashMap o2) {
+                        return o1.get("DATE").toString().compareTo(o2.get("DATE").toString());
+                    }
+                });
+
+
+                Collections.sort(searchMap, new Comparator<HashMap>() {
+                    @Override
+                    public int compare(HashMap o1, HashMap o2) {
+                        return o1.get("DATE").toString().compareTo(o2.get("DATE").toString());
+                    }
+                });
+
+                Collections.reverse(profileMap);
+                Collections.reverse(searchMap);
+                ListViewUpdater();
+
+            }
+
+
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        };
+        mOrderRef.addValueEventListener(listener);
+    }
+
+    public void SearchBackPressed(){
+        noUserFound.setVisibility(View.GONE);
+        ListViewUpdater();
+        listenerFlag = true;
+
+        mOrderRef.addValueEventListener(listener);
+        onlineCount.addValueEventListener(onlineListener);
+        unreadCount.addValueEventListener(countListener);
+        mRef.addValueEventListener(mainListener);
+
+    }
     @Override
     public void onDestroyView() {
         super.onDestroyView();
     }
+
 }

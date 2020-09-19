@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -28,13 +29,14 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import static androidx.constraintlayout.widget.Constraints.TAG;
 
 public class LoginActivity extends AppCompatActivity {
 String mEmail, mPassword;
 EditText editTextMail, editTextPassword;
-Button signIn;
+Button signIn, forgotPassword;
 int flag1, flag2;
 
     @Override
@@ -46,6 +48,7 @@ int flag1, flag2;
         signIn = findViewById(R.id.sign_in_button);
         editTextMail = findViewById(R.id.user_email_sign_in);
         editTextPassword = findViewById(R.id.user_password_sign_in);
+        forgotPassword = findViewById(R.id.forgot_password);
 
         signIn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -54,9 +57,14 @@ int flag1, flag2;
                 flag2 = 0;
                 mEmail = editTextMail.getText().toString();
                 mPassword = editTextPassword.getText().toString();
+                Pattern pattern = Patterns.EMAIL_ADDRESS;
 
                 if(mEmail.isEmpty()){
                     Toast.makeText(LoginActivity.this, "Email Field Empty", Toast.LENGTH_SHORT).show();
+                    flag1++;
+                }
+                else if(!pattern.matcher(mEmail).matches()){
+                    Toast.makeText(LoginActivity.this, "Invalid Email ID", Toast.LENGTH_SHORT).show();
                     flag1++;
                 }
 
@@ -70,8 +78,14 @@ int flag1, flag2;
 
             }
         });
+    forgotPassword.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
 
+        }
+    });
     }
+
     public void loginUser(String email, String password){
         Log.e(TAG, "loginUser: InLoginUserMethod");
         FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
