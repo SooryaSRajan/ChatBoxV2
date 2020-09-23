@@ -160,7 +160,6 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
 
     @Override
     public boolean onPrepareOptionsMenu(@NonNull Menu menu) {
-        menu.findItem(R.id.home_button).setVisible(false);
         super.onPrepareOptionsMenu(menu);
         return true;
     }
@@ -186,12 +185,6 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
 
         }
 
-        if(item.getItemId() == R.id.home_button){
-           // fragmentManager = getSupportFragmentManager();
-           // fragmentTransaction = fragmentManager.beginTransaction();
-            //fragmentTransaction.replace(R.id.frame_layout_main, new UserListViewFragment(this, getSupportFragmentManager()), "USER LIST FRAGMENT");
-            //fragmentTransaction.commit();
-        }
         return super.onOptionsItemSelected(item);
     }
 

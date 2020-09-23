@@ -27,13 +27,13 @@ import java.util.Map;
 
 import static androidx.constraintlayout.motion.utils.Oscillator.TAG;
 
-public class profileListAdapter extends BaseAdapter {
+public class ProfileListAdapter extends BaseAdapter {
 
     Context context;
     LayoutInflater inflater;
     List<HashMap> list;
 
-    public profileListAdapter(Context context, List<HashMap> list){
+    public ProfileListAdapter(Context context, List<HashMap> list){
         this.context = context;
         this.list = list;
          inflater = LayoutInflater.from(context);

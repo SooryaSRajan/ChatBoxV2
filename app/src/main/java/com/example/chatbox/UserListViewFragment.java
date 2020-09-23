@@ -67,7 +67,6 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
     @Override
     public void onPrepareOptionsMenu(@NonNull Menu menu) {
         menu.findItem(R.id.search_button).setVisible(true);
-        menu.findItem(R.id.home_button).setVisible(false);
         super.onPrepareOptionsMenu(menu);
     }
 

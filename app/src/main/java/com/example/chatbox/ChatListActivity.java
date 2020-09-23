@@ -30,7 +30,7 @@ import com.example.chatbox.FCMNotifications.NotificationContent;
 import com.example.chatbox.FCMNotifications.RetrofitClient;
 import com.example.chatbox.MessageDatabase.MessageData;
 import com.example.chatbox.MessageDatabase.MessageDatabase;
-import com.example.chatbox.list_adapters.chatAdapter;
+import com.example.chatbox.list_adapters.ChatAdapter;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -79,7 +79,7 @@ public class ChatListActivity extends AppCompatActivity {
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
     ListView listView;
     ArrayList<HashMap> mList = new ArrayList<>();
-    private static chatAdapter adapter;
+    private static ChatAdapter adapter;
     EditText chatText;
     ImageButton mSend;
     String mMessage;
@@ -489,7 +489,7 @@ public class ChatListActivity extends AppCompatActivity {
                     public void run() {
                         // UI code goes here
                         Log.e(TAG, "run: Adapter called");
-                        adapter = new chatAdapter(ChatListActivity.this, mList);
+                        adapter = new ChatAdapter(ChatListActivity.this, mList);
                         listView = findViewById(R.id.chat_list_view);
                         listView.setAdapter(adapter);
                         adapter.notifyDataSetChanged();

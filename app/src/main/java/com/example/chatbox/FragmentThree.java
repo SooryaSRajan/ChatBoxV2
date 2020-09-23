@@ -3,14 +3,11 @@ package com.example.chatbox;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ContentValues;
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -18,14 +15,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.chatbox.list_adapters.profileListAdapter;
+import com.example.chatbox.list_adapters.ProfileListAdapter;
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.example.chatbox.user_profile_database.profile;
 import com.google.firebase.auth.FirebaseAuth;
@@ -58,7 +54,7 @@ public class FragmentThree extends Fragment {
     private Button mFriend, mFriendCancel;
     private TextView mfollowBuilderTitle, mFollowerBuilderSubTitle;
     private int currentListPosition = 0;
-    profileListAdapter adapter;
+    ProfileListAdapter adapter;
 
 
     @Override
@@ -137,7 +133,7 @@ public class FragmentThree extends Fragment {
         });
 
         listView = view.findViewById(R.id.list_view_three);
-        adapter = new profileListAdapter(getActivity(), searchMap);
+        adapter = new ProfileListAdapter(getActivity(), searchMap);
         listView.setAdapter(adapter);
 
         asyncTask();
@@ -218,17 +214,18 @@ public class FragmentThree extends Fragment {
                             map.put("KEY", mProfile.user_key);
                             profileMap.add(map);
                             searchMap.add(map);
+                            Handler handler = new Handler(Looper.getMainLooper());
+                            handler.post(new Runnable() {
+                                public void run() {
+                                    // UI code goes here
+                                    ListViewUpdater();
+
+                                }
+                            });
+
                             Log.e(TAG, "run: For Loop");
                         }
                     }
-                    Handler handler = new Handler(Looper.getMainLooper());
-                    handler.post(new Runnable() {
-                        public void run() {
-                            // UI code goes here
-                            ListViewUpdater();
-
-                        }
-                    });
 
                 }
                 catch(Exception e){

@@ -15,7 +15,7 @@ import android.widget.ImageButton;
 import android.widget.PopupMenu;
 
 
-public class profileFragment extends Fragment {
+public class ProfileFragment extends Fragment {
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -34,7 +34,6 @@ public class profileFragment extends Fragment {
     @Override
     public void onPrepareOptionsMenu(@NonNull Menu menu) {
         menu.findItem(R.id.search_button).setVisible(false);
-        menu.findItem(R.id.home_button).setVisible(true);
         super.onPrepareOptionsMenu(menu);
     }
 

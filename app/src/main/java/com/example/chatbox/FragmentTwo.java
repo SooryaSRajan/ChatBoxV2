@@ -1,13 +1,9 @@
 package com.example.chatbox;
 
 import android.annotation.SuppressLint;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
@@ -17,15 +13,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.example.chatbox.list_adapters.profileListAdapter;
+import com.example.chatbox.list_adapters.ProfileListAdapter;
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.example.chatbox.user_profile_database.profile;
 import com.google.firebase.auth.FirebaseAuth;
@@ -61,7 +53,7 @@ public class FragmentTwo extends Fragment {
     TextView title, subtitle;
     Button accept, deny;
     int listPosition = 0;
-    profileListAdapter adapter;
+    ProfileListAdapter adapter;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -115,8 +107,35 @@ public class FragmentTwo extends Fragment {
         });
 
         listView = view.findViewById(R.id.list_view_two);
-        adapter = new profileListAdapter(getActivity(), searchMap);
+        adapter = new ProfileListAdapter(getActivity(), searchMap);
         listView.setAdapter(adapter);
+
+        listener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                profileMap.clear();
+                searchMap.clear();
+                if(listenerFlag)
+                    for (int i = 0; i < mainMap.size(); i++) {
+                        if (snapshot.child("REQUEST").child(firebaseUser.getUid()).hasChild(Objects.requireNonNull(mainMap.get(i).get("KEY"))
+                                .toString()) ) {
+                            String token =  snapshot.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(mainMap.get(i).get("KEY"))
+                                    .toString()).getValue().toString();
+
+                            if(token.contains("REQUESTED")) {
+                                profileMap.add(mainMap.get(i));
+                                searchMap.add(mainMap.get(i));
+                                ListViewUpdater();
+
+                            }
+                        }
+                    }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        };
         asyncTask();
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -171,40 +190,6 @@ public class FragmentTwo extends Fragment {
                             Log.e(TAG, "run: For Loop");
                         }
                     }
-
-                   listener = new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            profileMap.clear();
-                            searchMap.clear();
-                            if(listenerFlag)
-                            for (int i = 0; i < mainMap.size(); i++) {
-                                if (snapshot.child("REQUEST").child(firebaseUser.getUid()).hasChild(Objects.requireNonNull(mainMap.get(i).get("KEY"))
-                                        .toString()) ) {
-                                    String token =  snapshot.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(mainMap.get(i).get("KEY"))
-                                            .toString()).getValue().toString();
-
-                                    if(token.contains("REQUESTED")) {
-                                        profileMap.add(mainMap.get(i));
-                                        searchMap.add(mainMap.get(i));
-
-                                    }
-                                }
-                            }
-
-                            Handler handler = new Handler(Looper.getMainLooper());
-                            handler.post(new Runnable() {
-                                public void run() {
-                                    ListViewUpdater();
-                                }
-                            });
-
-                        }
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-
-                        }
-                    };
                     mRef.addValueEventListener(listener);
                 }
                 catch(Exception e) {

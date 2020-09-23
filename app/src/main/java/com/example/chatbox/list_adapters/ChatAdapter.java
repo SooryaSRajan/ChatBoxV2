@@ -23,13 +23,13 @@ import java.util.HashMap;
 
 import static androidx.constraintlayout.motion.utils.Oscillator.TAG;
 
-public class chatAdapter extends BaseAdapter {
+public class ChatAdapter extends BaseAdapter {
 
     private ArrayList<HashMap> chatList;
     private Activity activity;
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
-    public chatAdapter(Activity activity, ArrayList<HashMap> chatList){
+    public ChatAdapter(Activity activity, ArrayList<HashMap> chatList){
         this.chatList = chatList;
         this.activity = activity;
     }

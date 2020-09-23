@@ -7,7 +7,6 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
@@ -23,7 +22,7 @@ import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.example.chatbox.list_adapters.profileListAdapter;
+import com.example.chatbox.list_adapters.ProfileListAdapter;
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.example.chatbox.user_profile_database.profile;
 import com.google.firebase.auth.FirebaseAuth;
@@ -59,7 +58,7 @@ public class FragmentOne extends Fragment {
     DatabaseReference mOrderRef = FirebaseDatabase.getInstance().getReference().child("PROFILE ORDER").child(firebaseUser.getUid());
     private ValueEventListener listener;
     Boolean listenerFlag = true;
-    profileListAdapter adapter;
+    ProfileListAdapter adapter;
     private Boolean flag = false;
 
     private ValueEventListener countListener;
@@ -81,10 +80,9 @@ public class FragmentOne extends Fragment {
         view = inflater.inflate(R.layout.fragment_one, container, false);
 
         listView = view.findViewById(R.id.list_view);
-        adapter = new profileListAdapter(getActivity(), searchMap);
+        adapter = new ProfileListAdapter(getActivity(), searchMap);
         listView.setAdapter(adapter);
 
-        asyncTask();
         noUserFound = view.findViewById(R.id.no_user_found_1);
         noUserFound.setVisibility(View.GONE);
 
@@ -100,7 +98,40 @@ public class FragmentOne extends Fragment {
             }
         });
 
+        mainListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                profileMap.clear();
+                searchMap.clear();
+                if(listenerFlag) {
+                    for (int i = 0; i < mainMap.size(); i++) {
+                        try {
+                            Log.e(TAG, "Frag One Data Change");
+                            if (snapshot.child(firebaseUser.getUid()).hasChild(Objects.requireNonNull(mainMap.get(i).get("KEY"))
+                                    .toString())) {
+                                String token = snapshot.child(firebaseUser.getUid()).child(Objects.requireNonNull(mainMap.get(i).get("KEY"))
+                                        .toString()).getValue().toString();
 
+                                if (token.contains("ACCEPTED")) {
+                                    profileMap.add(mainMap.get(i));
+                                    searchMap.add(mainMap.get(i));
+                                    ListViewUpdater();
+                                }
+                            }
+                        } catch (Exception e) {
+
+                        }
+                    }
+                    UnreadCount();
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+
+        };
+        asyncTask();
         return view;
     }
 
@@ -138,53 +169,7 @@ public class FragmentOne extends Fragment {
                         }
                     }
 
-                    mainListener = new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            profileMap.clear();
-                            searchMap.clear();
-                            if(listenerFlag) {
-                                for (int i = 0; i < mainMap.size(); i++) {
-                                    try {
-                                        Log.e(TAG, "Frag One Data Change");
-                                        if (snapshot.child(firebaseUser.getUid()).hasChild(Objects.requireNonNull(mainMap.get(i).get("KEY"))
-                                                .toString())) {
-                                            String token = snapshot.child(firebaseUser.getUid()).child(Objects.requireNonNull(mainMap.get(i).get("KEY"))
-                                                    .toString()).getValue().toString();
-
-                                            if (token.contains("ACCEPTED")) {
-                                                profileMap.add(mainMap.get(i));
-                                                searchMap.add(mainMap.get(i));
-                                            }
-                                        }
-                                    } catch (Exception e) {
-
-                                    }
-                                }
-
-                                Handler handler = new Handler(Looper.getMainLooper());
-                                handler.post(new Runnable() {
-                                    public void run() {
-                                        // UI code goes here
-                                        ListViewUpdater();
-
-                                        UnreadCount();
-
-                                        if (listener != null)
-                                            mOrderRef.addValueEventListener(listener);
-
-                                    }
-                                });
-                            }
-                        }
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-
-                        }
-
-                    };
                     mRef.addValueEventListener(mainListener);
-
                 }
                 catch(Exception e){
                     Log.e("Async List View", e.toString());
@@ -206,12 +191,12 @@ public class FragmentOne extends Fragment {
                             map.put("COUNT", count);
                         profileMap.set(i, map);
                         searchMap.set(i, map);
+                        ListViewUpdater();
                     }
                     catch (Exception e){
 
                     }
                 }
-                ListViewUpdater();
                 ListViewSorter();
             }
 
@@ -234,13 +219,12 @@ public class FragmentOne extends Fragment {
                         profileMap.set(i, mMap);
                         searchMap.set(i, mMap);
                         Log.e(TAG, "onDataOnline: Called") ;
-
+                        ListViewUpdater();
 
                     } catch (Exception ignored) {
                         Log.e(TAG, "onDataOnline: " + ignored.toString());
                     }
                 }
-                ListViewUpdater();
             }
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
@@ -261,11 +245,20 @@ public class FragmentOne extends Fragment {
                             Log.e(TAG, "onDataChange: " + lastMessage);
                             profileMap.set(i, mMap);
                             searchMap.set(i, mMap);
+                            ListViewUpdater();
                         } catch (Exception e) {
 
                         }
                     }
-                    ListViewUpdater();
+                    if(PROGRESS_FLAG) {
+                        RelativeLayout relativeLayout = getActivity().findViewById(R.id.progress_circular_layout);
+                        relativeLayout.setVisibility(View.GONE);
+
+                        DrawerLayout drawerLayout = getActivity().findViewById(R.id.drawer_layout);
+                        drawerLayout.setVisibility(View.VISIBLE);
+                        PROGRESS_FLAG = false;
+                    }
+
                 }
                 }
 
@@ -274,14 +267,6 @@ public class FragmentOne extends Fragment {
 
             }
         });
-        if(PROGRESS_FLAG) {
-            RelativeLayout relativeLayout = getActivity().findViewById(R.id.progress_circular_layout);
-            relativeLayout.setVisibility(View.GONE);
-
-            DrawerLayout drawerLayout = getActivity().findViewById(R.id.drawer_layout);
-            drawerLayout.setVisibility(View.VISIBLE);
-            PROGRESS_FLAG = false;
-        }
 
     }
 
