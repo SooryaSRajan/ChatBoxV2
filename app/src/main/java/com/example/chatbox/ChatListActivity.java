@@ -106,6 +106,10 @@ public class ChatListActivity extends AppCompatActivity {
         userKey = intent.getStringExtra("KEY");
         userName = intent.getStringExtra("NAME");
 
+        adapter = new chatAdapter(ChatListActivity.this, mList);
+        listView = findViewById(R.id.chat_list_view);
+        listView.setAdapter(adapter);
+
         Log.e(TAG, "onCreate: " + USER_NAME + userName + userKey);
 
         try {
@@ -321,9 +325,6 @@ public class ChatListActivity extends AppCompatActivity {
         map.put("TIME",getTime());
 
         mList.add(map);
-        adapter = new chatAdapter(ChatListActivity.this, mList);
-        listView = findViewById(R.id.chat_list_view);
-        listView.setAdapter(adapter);
         adapter.notifyDataSetChanged();
 
         writeToFirebase(map, intent.getStringExtra("KEY"));
@@ -489,9 +490,6 @@ public class ChatListActivity extends AppCompatActivity {
                     public void run() {
                         // UI code goes here
                         Log.e(TAG, "run: Adapter called");
-                        adapter = new chatAdapter(ChatListActivity.this, mList);
-                        listView = findViewById(R.id.chat_list_view);
-                        listView.setAdapter(adapter);
                         adapter.notifyDataSetChanged();
 
                         eventListener = new ValueEventListener() {
@@ -524,9 +522,6 @@ public class ChatListActivity extends AppCompatActivity {
                                         Log.e(TAG, "onDataChange: " + e.toString() );
                                     }
 
-                                    adapter = new chatAdapter(ChatListActivity.this, mList);
-                                    listView = findViewById(R.id.chat_list_view);
-                                    listView.setAdapter(adapter);
                                     adapter.notifyDataSetChanged();
                                 }
                             }

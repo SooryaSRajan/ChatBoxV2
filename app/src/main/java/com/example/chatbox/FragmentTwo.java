@@ -61,6 +61,7 @@ public class FragmentTwo extends Fragment {
     TextView title, subtitle;
     Button accept, deny;
     int listPosition = 0;
+    profileListAdapter adapter;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -114,6 +115,8 @@ public class FragmentTwo extends Fragment {
         });
 
         listView = view.findViewById(R.id.list_view_two);
+        adapter = new profileListAdapter(getActivity(), searchMap);
+        listView.setAdapter(adapter);
         asyncTask();
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -215,9 +218,7 @@ public class FragmentTwo extends Fragment {
 
     public void ListViewUpdater(){
 
-        if(getActivity()!=null) {
-            profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
-            listView.setAdapter(adapter);
+        if(getActivity()!=null && adapter!=null) {
             adapter.notifyDataSetChanged();
         }
 
@@ -240,18 +241,13 @@ public class FragmentTwo extends Fragment {
                 if (i.get("NAME").toString().toLowerCase().contains(string.trim().toLowerCase())) {
                     searchMap.add(i);
                     noUserFound.setVisibility(View.GONE);
-                    ListView listView = getActivity().findViewById(R.id.list_view_two);
-                    profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
-                    listView.setAdapter(adapter);
+                    ListViewUpdater();
 
                 }
             }
             if (searchMap.isEmpty()) {
                 noUserFound.setVisibility(View.VISIBLE);
-                ListView listView = getActivity().findViewById(R.id.list_view_two);
-                profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
-                listView.setAdapter(adapter);
-
+                ListViewUpdater();
             }
         }
     }

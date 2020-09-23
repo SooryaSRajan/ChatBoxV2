@@ -59,6 +59,7 @@ public class FragmentOne extends Fragment {
     DatabaseReference mOrderRef = FirebaseDatabase.getInstance().getReference().child("PROFILE ORDER").child(firebaseUser.getUid());
     private ValueEventListener listener;
     Boolean listenerFlag = true;
+    profileListAdapter adapter;
 
     private ValueEventListener countListener;
     private static ListView listView;
@@ -77,7 +78,11 @@ public class FragmentOne extends Fragment {
         Log.e(TAG, "onCreateView: Frag 1" );
         // Inflate the layout for this fragment
         view = inflater.inflate(R.layout.fragment_one, container, false);
+
         listView = view.findViewById(R.id.list_view);
+        adapter = new profileListAdapter(getActivity(), searchMap);
+        listView.setAdapter(adapter);
+
         asyncTask();
         noUserFound = view.findViewById(R.id.no_user_found_1);
         noUserFound.setVisibility(View.GONE);
@@ -156,20 +161,12 @@ public class FragmentOne extends Fragment {
                                     }
                                 }
 
-                                if(PROGRESS_FLAG) {
-                                    RelativeLayout relativeLayout = getActivity().findViewById(R.id.progress_circular_layout);
-                                    relativeLayout.setVisibility(View.GONE);
-
-                                    DrawerLayout drawerLayout = getActivity().findViewById(R.id.drawer_layout);
-                                    drawerLayout.setVisibility(View.VISIBLE);
-                                    PROGRESS_FLAG = false;
-                                }
-
                                 Handler handler = new Handler(Looper.getMainLooper());
                                 handler.post(new Runnable() {
                                     public void run() {
                                         // UI code goes here
                                         ListViewUpdater();
+
                                         UnreadCount();
 
                                         if (listener != null)
@@ -275,6 +272,15 @@ public class FragmentOne extends Fragment {
 
             }
         });
+        if(PROGRESS_FLAG) {
+            RelativeLayout relativeLayout = getActivity().findViewById(R.id.progress_circular_layout);
+            relativeLayout.setVisibility(View.GONE);
+
+            DrawerLayout drawerLayout = getActivity().findViewById(R.id.drawer_layout);
+            drawerLayout.setVisibility(View.VISIBLE);
+            PROGRESS_FLAG = false;
+        }
+
     }
 
 
@@ -293,8 +299,6 @@ public class FragmentOne extends Fragment {
 
         }
         if (getActivity() != null && flag == false) {
-            profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
-            listView.setAdapter(adapter);
             adapter.notifyDataSetChanged();
         }
     }
@@ -309,18 +313,12 @@ public class FragmentOne extends Fragment {
                 if (i.get("NAME").toString().toLowerCase().contains(string.trim().toLowerCase())) {
                     noUserFound.setVisibility(View.GONE);
                     searchMap.add(i);
-                    ListView listView = getActivity().findViewById(R.id.list_view);
-                    profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
-                    listView.setAdapter(adapter);
-
+                    adapter.notifyDataSetChanged();
                 }
             }
             if (searchMap.isEmpty()) {
                 noUserFound.setVisibility(View.VISIBLE);
-                ListView listView = getActivity().findViewById(R.id.list_view);
-                profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
-                listView.setAdapter(adapter);
-
+                adapter.notifyDataSetChanged();
             }
         }
     }

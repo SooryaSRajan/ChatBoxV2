@@ -58,6 +58,7 @@ public class FragmentThree extends Fragment {
     private Button mFriend, mFriendCancel;
     private TextView mfollowBuilderTitle, mFollowerBuilderSubTitle;
     private int currentListPosition = 0;
+    profileListAdapter adapter;
 
 
     @Override
@@ -136,6 +137,9 @@ public class FragmentThree extends Fragment {
         });
 
         listView = view.findViewById(R.id.list_view_three);
+        adapter = new profileListAdapter(getActivity(), searchMap);
+        listView.setAdapter(adapter);
+
         asyncTask();
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -237,8 +241,6 @@ public class FragmentThree extends Fragment {
     public void ListViewUpdater(){
 
         if(getActivity()!=null) {
-            profileListAdapter adapter = new profileListAdapter(getActivity(), profileMap);
-            listView.setAdapter(adapter);
             adapter.notifyDataSetChanged();
         }
 
@@ -254,17 +256,12 @@ public class FragmentThree extends Fragment {
                 if (i.get("NAME").toString().toLowerCase().contains(string.trim().toLowerCase())) {
                     searchMap.add(i);
                     noUserFound.setVisibility(View.GONE);
-                    ListView listView = getActivity().findViewById(R.id.list_view_three);
-                    profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
-                    listView.setAdapter(adapter);
-
+                    ListViewUpdater();
                 }
             }
             if (searchMap.isEmpty()) {
                 noUserFound.setVisibility(View.VISIBLE);
-                ListView listView = getActivity().findViewById(R.id.list_view_three);
-                profileListAdapter adapter = new profileListAdapter(getActivity(), searchMap);
-                listView.setAdapter(adapter);
+                ListViewUpdater();
             }
         }
     }

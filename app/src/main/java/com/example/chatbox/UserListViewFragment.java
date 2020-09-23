@@ -195,11 +195,8 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
                         public void run() {
                             // UI code goes here
                             fragmentOne.asyncTask();
-                            fragmentOne.ListViewUpdater();
                             fragmentTwo.asyncTask();
-                            fragmentTwo.ListViewUpdater();
                             fragmentThree.asyncTask();
-                            fragmentThree.ListViewUpdater();
 
                         }
                     });
