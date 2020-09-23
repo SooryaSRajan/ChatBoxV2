@@ -10,6 +10,7 @@ public class NotificationContent {
      @SerializedName("body")
      String body;
 
+
     public void setTitle(String title) {
         this.title = title;
     }
@@ -17,4 +18,5 @@ public class NotificationContent {
     public void setBody(String body) {
         this.body = body;
     }
+
 }

@@ -8,6 +8,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
@@ -19,6 +20,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.FrameLayout;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.example.chatbox.list_adapters.profileListAdapter;
@@ -40,6 +42,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static androidx.constraintlayout.widget.Constraints.TAG;
+import static com.example.chatbox.Constants.PROGRESS_FLAG;
 
 public class FragmentOne extends Fragment {
     FrameLayout relativeLayout;
@@ -82,9 +85,10 @@ public class FragmentOne extends Fragment {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
-                Intent intent = new Intent(FragmentOne.super.getContext(), chatListActivity.class);
+                Intent intent = new Intent(FragmentOne.super.getContext(), ChatListActivity.class);
                 intent.putExtra("KEY", searchMap.get(position).get("KEY").toString());
                 intent.putExtra("NAME", searchMap.get(position).get("NAME").toString());
+
                 startActivity(intent);
                 getActivity().finish();
             }
@@ -150,6 +154,15 @@ public class FragmentOne extends Fragment {
                                     } catch (Exception e) {
 
                                     }
+                                }
+
+                                if(PROGRESS_FLAG) {
+                                    RelativeLayout relativeLayout = getActivity().findViewById(R.id.progress_circular_layout);
+                                    relativeLayout.setVisibility(View.GONE);
+
+                                    DrawerLayout drawerLayout = getActivity().findViewById(R.id.drawer_layout);
+                                    drawerLayout.setVisibility(View.VISIBLE);
+                                    PROGRESS_FLAG = false;
                                 }
 
                                 Handler handler = new Handler(Looper.getMainLooper());
@@ -237,6 +250,31 @@ public class FragmentOne extends Fragment {
             }
         };
         onlineCount.addValueEventListener(onlineListener);
+
+        FirebaseDatabase.getInstance().getReference().child("LAST MESSAGE").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for(int i = 0; i< profileMap.size(); i++) {
+                try {
+                    HashMap mMap = profileMap.get(i);
+                    String lastMessage = snapshot.child(firebaseUser.getUid()).child(mMap.get("KEY").toString()).getValue().toString();
+                    mMap.put("LAST MESSAGE", lastMessage);
+                    Log.e(TAG, "onDataChange: " + lastMessage);
+                    profileMap.set(i, mMap);
+                    searchMap.set(i, mMap);
+                }
+                catch (Exception e){
+
+                }
+                }
+                ListViewUpdater();
+                }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
     }
 
 
@@ -329,7 +367,6 @@ public class FragmentOne extends Fragment {
                 Collections.reverse(profileMap);
                 Collections.reverse(searchMap);
                 ListViewUpdater();
-
             }
 
 

@@ -1,5 +1,6 @@
 package com.example.chatbox;
 
+import android.annotation.SuppressLint;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -17,6 +18,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -56,6 +58,9 @@ public class FragmentTwo extends Fragment {
     private Boolean listenerFlag = true;
     private TextView noUserFound;
     private View view;
+    TextView title, subtitle;
+    Button accept, deny;
+    int listPosition = 0;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -65,44 +70,63 @@ public class FragmentTwo extends Fragment {
         noUserFound = view.findViewById(R.id.no_user_found_2);
         noUserFound.setVisibility(View.GONE);
 
+        final View builderView = getLayoutInflater().inflate(R.layout.accept_request, null);
+
+        final android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(getActivity());
+        builder.setView(builderView);
+        final android.app.AlertDialog alertDialog = builder.create();
+
+        title = builderView.findViewById(R.id.accept_request_title);
+        subtitle = builderView.findViewById(R.id.accept_request_sub_title);
+        accept = builderView.findViewById(R.id.accept_request_confirm);
+        deny = builderView.findViewById(R.id.accept_request_deny);
+
+        accept.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mRef.child("REQUEST").child(Objects.requireNonNull(searchMap.get(listPosition)
+                        .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("ACCEPTED");
+
+                mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(listPosition)
+                        .get("KEY")).toString()).setValue("ACCEPTED");
+
+                mRef.child("PROFILE ORDER").child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(listPosition)
+                        .get("KEY")).toString()).setValue(getTime());
+                mRef.child("PROFILE ORDER").child(Objects.requireNonNull(searchMap.get(listPosition)
+                        .get("KEY")).toString()).child(firebaseUser.getUid()).setValue(getTime());
+                alertDialog.dismiss();
+
+
+            }
+        });
+
+        deny.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mRef.child("REQUEST").child(Objects.requireNonNull(searchMap.get(listPosition)
+                        .get("KEY")).toString()).child(firebaseUser.getUid()).removeValue();
+
+                mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(listPosition)
+                        .get("KEY")).toString()).removeValue();
+
+                alertDialog.dismiss();
+            }
+        });
+
         listView = view.findViewById(R.id.list_view_two);
         asyncTask();
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
+            @SuppressLint("SetTextI18n")
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
-
-                androidx.appcompat.app.AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                builder.setTitle("Accept Friend request?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-
-                        mRef.child("REQUEST").child(Objects.requireNonNull(searchMap.get(position)
-                                .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("ACCEPTED");
-
-                        mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(position)
-                                .get("KEY")).toString()).setValue("ACCEPTED");
-
-                        mRef.child("PROFILE ORDER").child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(position)
-                                .get("KEY")).toString()).setValue(getTime());
-                        mRef.child("PROFILE ORDER").child(Objects.requireNonNull(searchMap.get(position)
-                                .get("KEY")).toString()).child(firebaseUser.getUid()).setValue(getTime());
-
-
-                    }
-                }).setNegativeButton("No", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        mRef.child("REQUEST").child(Objects.requireNonNull(searchMap.get(position)
-                                .get("KEY")).toString()).child(firebaseUser.getUid()).removeValue();
-
-                        mRef.child("REQUEST").child(firebaseUser.getUid()).child(Objects.requireNonNull(searchMap.get(position)
-                                .get("KEY")).toString()).removeValue();
-                    }
-                }).create();
-                builder.show();
-
+                listPosition = position;
+                title.setText("Accept " + searchMap.get(position).get("NAME").toString() + " request?");
+                subtitle.setText("Are you sure you want to accept " +
+                        searchMap.get(position).get("NAME").toString() + " Request?" +"\nYou " +
+                        "will be able to view and send chats as long as you're friends");
+                alertDialog.show();
 
             }
         });
@@ -202,9 +226,8 @@ public class FragmentTwo extends Fragment {
 
     public String getTime(){
         Date currentTime = Calendar.getInstance().getTime();
-        //DateFormat dateFormat = new SimpleDateFormat("HH:mm");
-        //return dateFormat.format(currentTime);
-        return currentTime.toString();
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return dateFormat.format(currentTime);
     }
 
 

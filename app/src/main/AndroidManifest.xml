@@ -14,7 +14,7 @@
         android:theme="@style/AppTheme">
         <activity android:name=".ProfilePictureActivity" />
         <activity
-            android:name=".chatListActivity"
+            android:name=".ChatListActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".LoginActivity" />
         <activity android:name=".SignUpActivity" />
@@ -31,16 +31,18 @@
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
-
         </service>
 
         <service android:name=".FCMNotifications.FirebaseInstanceIDService">
             <intent-filter>
                 <action android:name="com.google.firebase.INSTANCE_ID_EVENT"/>
             </intent-filter>
-
         </service>
-
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_message_black_24dp" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/colorGreen" />
     </application>
 
 </manifest>

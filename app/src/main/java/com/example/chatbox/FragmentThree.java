@@ -59,6 +59,7 @@ public class FragmentThree extends Fragment {
     private TextView mfollowBuilderTitle, mFollowerBuilderSubTitle;
     private int currentListPosition = 0;
 
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {

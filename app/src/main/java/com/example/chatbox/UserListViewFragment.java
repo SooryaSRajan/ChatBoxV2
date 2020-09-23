@@ -44,7 +44,7 @@ import java.util.Objects;
 import static android.content.ContentValues.TAG;
 
 
-public class user_list_view_fragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener {
+public class UserListViewFragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener {
     private FragmentManager fragmentManager;
     Context context;
     SwipeRefreshLayout pullToRefresh;
@@ -143,7 +143,7 @@ public class user_list_view_fragment extends Fragment implements SwipeRefreshLay
         return view;
     }
 
-    user_list_view_fragment(Context context, FragmentManager fragmentManager){
+    UserListViewFragment(Context context, FragmentManager fragmentManager){
         this.fragmentManager = fragmentManager;
         this.context = context;
     }

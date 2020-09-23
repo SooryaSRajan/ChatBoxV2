@@ -13,7 +13,6 @@ import androidx.fragment.app.FragmentTransaction;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -26,6 +25,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.example.chatbox.MessageDatabase.MessageDatabase;
@@ -40,11 +41,9 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.messaging.FirebaseMessagingService;
 
-import java.util.Calendar;
-
-import static com.example.chatbox.CONSTANTS.USER_NAME;
+import static com.example.chatbox.Constants.PROGRESS_FLAG;
+import static com.example.chatbox.Constants.USER_NAME;
 import static com.example.chatbox.R.id.user_name_navigation_view;
 
 public class HomePageActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -59,6 +58,7 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
     TabLayout layout;
     EditText text;
     Fragment fragment;
+    ProgressBar progressBar;
 
     final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
     DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
@@ -67,8 +67,9 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_page);
+        progressBar = findViewById(R.id.progress_circular_bar);
 
-        fragment = new user_list_view_fragment(this, getSupportFragmentManager());
+        fragment = new UserListViewFragment(this, getSupportFragmentManager());
         mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("ONLINE");
         mRef.child("ONLINE").child(firebaseUser.getUid()).onDisconnect().setValue("OFFLINE");
 
@@ -110,8 +111,16 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
 
         navigationView = findViewById(R.id.navigation_view);
         navigationView.setNavigationItemSelectedListener(this);
-
         drawerLayout = findViewById(R.id.drawer_layout);
+
+        if(PROGRESS_FLAG) {
+            drawerLayout.setVisibility(View.INVISIBLE);
+        }
+        else{
+            RelativeLayout relativeLayout = findViewById(R.id.progress_circular_layout);
+            relativeLayout.setVisibility(View.GONE);
+        }
+
         actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.open, R.string.close);
         drawerLayout.addDrawerListener(actionBarDrawerToggle);
         actionBarDrawerToggle.setDrawerIndicatorEnabled(true);
@@ -180,7 +189,7 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         if(item.getItemId() == R.id.home_button){
            // fragmentManager = getSupportFragmentManager();
            // fragmentTransaction = fragmentManager.beginTransaction();
-            //fragmentTransaction.replace(R.id.frame_layout_main, new user_list_view_fragment(this, getSupportFragmentManager()), "USER LIST FRAGMENT");
+            //fragmentTransaction.replace(R.id.frame_layout_main, new UserListViewFragment(this, getSupportFragmentManager()), "USER LIST FRAGMENT");
             //fragmentTransaction.commit();
         }
         return super.onOptionsItemSelected(item);
@@ -197,8 +206,7 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
                 public void onClick(DialogInterface dialog, int which) {
                     asyncTask();
                     mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("OFFLINE");
-                    Intent startIntent = new Intent(getApplicationContext(), NotificationComponentService.class);
-                    stopService(startIntent);
+                    FirebaseDatabase.getInstance().getReference().child("TOKENS").child(FirebaseAuth.getInstance().getUid()).removeValue();
                     FirebaseAuth.getInstance().signOut();
                     Intent intent = new Intent(HomePageActivity.this, LoginSignUpActivity.class);
                     startActivity(intent);
@@ -227,13 +235,6 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
                 database1.dao().deleteAll();
             }
         });
-    }
-
-    void startAlert(){
-        Intent intent = new Intent(HomePageActivity.this, NotificationComponentService.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), 0, intent, 0);
-        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 100, pendingIntent);
     }
 
 

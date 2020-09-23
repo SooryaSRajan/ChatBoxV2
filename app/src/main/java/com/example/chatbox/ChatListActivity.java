@@ -5,8 +5,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import android.app.Notification;
-import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -33,7 +31,6 @@ import com.example.chatbox.FCMNotifications.RetrofitClient;
 import com.example.chatbox.MessageDatabase.MessageData;
 import com.example.chatbox.MessageDatabase.MessageDatabase;
 import com.example.chatbox.list_adapters.chatAdapter;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -41,11 +38,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -69,9 +63,9 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import static com.example.chatbox.CONSTANTS.USER_NAME;
+import static com.example.chatbox.Constants.USER_NAME;
 
-public class chatListActivity extends AppCompatActivity {
+public class ChatListActivity extends AppCompatActivity {
 
     Toolbar toolbar;
     List<MessageData> messageData = null;
@@ -112,37 +106,43 @@ public class chatListActivity extends AppCompatActivity {
         userKey = intent.getStringExtra("KEY");
         userName = intent.getStringExtra("NAME");
 
+        Log.e(TAG, "onCreate: " + USER_NAME + userName + userKey);
+
         try {
             refToken = database.getReference().child("TOKENS").child(userKey);
             database.getReference().child("TOKENS").child(mAuth.getUid()).setValue(FirebaseInstanceId.getInstance().getToken());
+
+            refToken.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                   if(snapshot!=null)
+                       if(snapshot.exists())
+                    token = snapshot.getValue().toString();
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+
+                }
+            });
+
         }
         catch (Exception e){
             Log.e(TAG, "onCreate: Token "+e.toString() );
+            Toast.makeText(this, userKey, Toast.LENGTH_SHORT).show();
         }
 
-        refToken.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                token = snapshot.getValue().toString();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
-
         AsyncMessage();
-        ref.child("TYPING").child(Objects.requireNonNull(intent.getStringExtra("KEY")))
+         ref.child("TYPING").child(Objects.requireNonNull(intent.getStringExtra("KEY")))
                 .child(Objects.requireNonNull(mAuth.getUid())).setValue("NOT");
 
         ValueEventListener countListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 try {
-                    mCount = Integer.parseInt(snapshot.child(mAuth.getUid()).child(intent.getStringExtra("KEY")).getValue().toString());
+                    mCount = Integer.parseInt(snapshot.child(mAuth.getUid()).child(Objects.requireNonNull(intent.getStringExtra("KEY"))).getValue().toString());
                 }
-                catch (Exception e){
+                catch (Exception ignored){
 
                 }
             }
@@ -205,6 +205,7 @@ public class chatListActivity extends AppCompatActivity {
         };
 
         ref2.addValueEventListener(eventListener2);
+
 
         ValueEventListener statusListener = new ValueEventListener() {
             @Override
@@ -303,7 +304,7 @@ public class chatListActivity extends AppCompatActivity {
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(chatListActivity.this, HomePageActivity.class);
+                Intent intent = new Intent(ChatListActivity.this, HomePageActivity.class);
                 startActivity(intent);
                 finish();
             }
@@ -320,7 +321,7 @@ public class chatListActivity extends AppCompatActivity {
         map.put("TIME",getTime());
 
         mList.add(map);
-        adapter = new chatAdapter(chatListActivity.this, mList);
+        adapter = new chatAdapter(ChatListActivity.this, mList);
         listView = findViewById(R.id.chat_list_view);
         listView.setAdapter(adapter);
         adapter.notifyDataSetChanged();
@@ -331,7 +332,7 @@ public class chatListActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        Intent intent = new Intent(chatListActivity.this, HomePageActivity.class);
+        Intent intent = new Intent(ChatListActivity.this, HomePageActivity.class);
         startActivity(intent);
         finish();
         super.onBackPressed();
@@ -352,7 +353,8 @@ public class chatListActivity extends AppCompatActivity {
 
     public String getDateTime(){
         Date currentTime = Calendar.getInstance().getTime();
-        return currentTime.toString();
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return dateFormat.format(currentTime);
     }
 
     public void writeToFirebase(final HashMap temp, final String ID) {
@@ -362,7 +364,8 @@ public class chatListActivity extends AppCompatActivity {
                 ref.child("PROFILE ORDER").child(mAuth.getUid()).child(ID).setValue(getDateTime());
                 ref.child("PROFILE ORDER").child(ID).child(mAuth.getUid()).setValue(getDateTime());
                 ref.child("UNREAD COUNT").child(mAuth.getUid()).child(ID).setValue(Integer.toString(++mCount));
-
+                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size()-1).get("MESSAGE").toString());
+                ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(mList.get(mList.size()-1).get("MESSAGE").toString());
                 AsyncMessage(temp, databaseReference.getKey());
             }
 
@@ -450,7 +453,7 @@ public class chatListActivity extends AppCompatActivity {
             @Override
             public void run() {
                 super.run();
-                MessageDatabase database = MessageDatabase.getInstance(chatListActivity.this);
+                MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
                 messageData = database.dao().getMessages();
 
                 for(int i = 0; i<messageData.size(); i++) {
@@ -486,7 +489,7 @@ public class chatListActivity extends AppCompatActivity {
                     public void run() {
                         // UI code goes here
                         Log.e(TAG, "run: Adapter called");
-                        adapter = new chatAdapter(chatListActivity.this, mList);
+                        adapter = new chatAdapter(ChatListActivity.this, mList);
                         listView = findViewById(R.id.chat_list_view);
                         listView.setAdapter(adapter);
                         adapter.notifyDataSetChanged();
@@ -509,6 +512,7 @@ public class chatListActivity extends AppCompatActivity {
                                                 map.put("TO", snap.child("TO").getValue());
                                                 map.put("TIME", snap.child("TIME").getValue().toString());
                                                 mList.add(map);
+                                                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size()-1).get("MESSAGE").toString());
                                                 Log.e(TAG, "onDataChange: Senders Message" + snap.getKey());
                                                 AsyncMessage(map, snap.getKey());
                                                 removeKey.add(snap.getKey());
@@ -520,7 +524,7 @@ public class chatListActivity extends AppCompatActivity {
                                         Log.e(TAG, "onDataChange: " + e.toString() );
                                     }
 
-                                    adapter = new chatAdapter(chatListActivity.this, mList);
+                                    adapter = new chatAdapter(ChatListActivity.this, mList);
                                     listView = findViewById(R.id.chat_list_view);
                                     listView.setAdapter(adapter);
                                     adapter.notifyDataSetChanged();
@@ -548,7 +552,7 @@ public class chatListActivity extends AppCompatActivity {
             public void run() {
                 super.run();
                 try {
-                    MessageDatabase database = MessageDatabase.getInstance(chatListActivity.this);
+                    MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
                     MessageData dataObject = new MessageData(key, map.get("FROM").toString(), map.get("TO").toString(), map.get("TIME").toString(), map.get("MESSAGE").toString());
                     database.dao().InsertMessage(dataObject);
                     Log.e(TAG, "run: Message Added");
@@ -562,45 +566,47 @@ public class chatListActivity extends AppCompatActivity {
         thread.start();
     }
 
-    public void writeNotification(String Message, String Name){
-        content = new NotificationContent();
-        notificationBody = new NotificationBody();
+    public void writeNotification(String Message, String Name) {
+        if (token != null) {
+            content = new NotificationContent();
+            notificationBody = new NotificationBody();
 
-        content.setBody(Message);
-        content.setTitle(Name + ": " + userName);
-        notificationBody.setNotificationContent(content);
-        notificationBody.setToken(token);
+            content.setBody(Message);
+            content.setTitle(Name + ": " + userName);
 
-        apiInterface = RetrofitClient.getClient().create(APIInterface.class);
-        retrofit2.Call<ResponseBody> responseBodyCall = apiInterface.sendNotification(notificationBody);
-        responseBodyCall.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                Log.e(TAG, "onResponse: " + call.toString() + " Response: " + response.toString() + " Body " + response.body() + "Code" + response.code() );
-                if(response.code() == 400){
-                    try {
-                        Log.e(TAG, "onResponse: Error Body " + response.errorBody().string() );
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+            notificationBody.setNotificationContent(content);
+            notificationBody.setToken(token);
 
-                    try {
-                        String str = response.errorBody().string();
+            apiInterface = RetrofitClient.getClient().create(APIInterface.class);
+            retrofit2.Call<ResponseBody> responseBodyCall = apiInterface.sendNotification(notificationBody);
+            responseBodyCall.enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                    Log.e(TAG, "onResponse: " + call.toString() + " Response: " + response.toString() + " Body " + response.body() + "Code" + response.code());
+                    if (response.code() == 400) {
+                        try {
+                            Log.e(TAG, "onResponse: Error Body " + response.errorBody().string());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        try {
+                            String str = response.errorBody().string();
                             JSONObject jObjError = new JSONObject(str);
-                            Toast.makeText(chatListActivity.this, jObjError.getString("message"), Toast.LENGTH_LONG).show();
+                            Toast.makeText(ChatListActivity.this, jObjError.getString("message"), Toast.LENGTH_LONG).show();
                         } catch (JSONException | IOException e) {
-                            Log.e(TAG, "onResponse: JSON Exception" + e.toString() );
+                            Log.e(TAG, "onResponse: JSON Exception" + e.toString());
+                        }
                     }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
 
-            }
-        });
+                }
+            });
 
+        }
     }
-
 }
 

@@ -65,6 +65,7 @@ public class chatAdapter extends BaseAdapter {
         TextView mMessage = convertView.findViewById(R.id.chat_text_list);
         TextView mTime = convertView.findViewById(R.id.text_time_list);
 
+
         /***Date And Time Formatter For List View Chat**/
         String time = map.get("TIME").toString();
         try {
@@ -77,13 +78,13 @@ public class chatAdapter extends BaseAdapter {
             String curDate = format.format(currentTime);
 
             if(chatDate.contains(curDate)){
-                format = new SimpleDateFormat("hh:mm");
+                format = new SimpleDateFormat("hh:mm aa");
                 time = format.format(date);
                 Log.e(TAG, "Adapter Time Matches");
             }
 
             else{
-                format = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+                format = new SimpleDateFormat("dd-MM-yyyy HH:mm aa");
                 time = format.format(date);
                 Log.e(TAG, "Time doesnt Match" );
             }
@@ -95,11 +96,17 @@ public class chatAdapter extends BaseAdapter {
 
         try {
             mName.setText(map.get("NAME").toString());
+        }
+        catch (Exception e){
+            Log.e(TAG, "getView:  Name" + e.toString() );
+        }
+
+        try {
             mMessage.setText(map.get("MESSAGE").toString());
             mTime.setText(time);
         }
         catch (Exception e){
-            Log.e(TAG, "getView: " + e.toString() );
+
         }
 
         return convertView;

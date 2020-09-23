@@ -68,7 +68,7 @@ public class NotificationComponentService extends Service {
                             Log.e(TAG, "onDataChange: Data Change");
                             if (key.contains(mAuth.getUid())) {
                                 Log.e(TAG, "onDataChange: Data Change");
-                                Intent intent = new Intent(NotificationComponentService.this, chatListActivity.class);
+                                Intent intent = new Intent(NotificationComponentService.this, ChatListActivity.class);
                                 intent.putExtra("NAME", snap.child("NAME").getValue().toString());
                                 intent.putExtra("KEY", snap.child("FROM").getValue().toString());
                                 PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);

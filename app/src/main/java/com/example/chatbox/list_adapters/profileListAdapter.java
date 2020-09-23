@@ -16,6 +16,11 @@ import androidx.core.content.ContextCompat;
 
 import com.example.chatbox.R;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +88,7 @@ public class profileListAdapter extends BaseAdapter {
         }
         TextView status = convertView.findViewById(R.id.online_status_color);
         status.setVisibility(View.GONE);
+        TextView lastMessageTextView = convertView.findViewById(R.id.last_message);
 
         try {
             String mStatus = list.get(position).get("ONLINE").toString();
@@ -102,6 +108,14 @@ public class profileListAdapter extends BaseAdapter {
             Log.e(TAG, "getView: " + e.toString() );
         }
 
+        try {
+            String lastMessage = list.get(position).get("LAST MESSAGE").toString();
+            lastMessageTextView.setText(lastMessage);
+        }
+        catch (Exception e){
+
+        }
+
         try{
             //ImageButton button = convertView.findViewById(R.id.profile_picture);
             /*button.setOnClickListener(new View.OnClickListener() {
@@ -116,6 +130,38 @@ public class profileListAdapter extends BaseAdapter {
         catch (Exception e){
             Log.e(TAG, "getView: " + e.toString() );
         }
+        TextView mTime = convertView.findViewById(R.id.user_list_time);
+
+        try{
+            String time = list.get(position).get("DATE").toString();
+            try {
+                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date date = format.parse(time);
+                Date currentTime = Calendar.getInstance().getTime();
+
+                format = new SimpleDateFormat("yyyy-MM-dd");
+                String chatDate = format.format(date);
+                String curDate = format.format(currentTime);
+                if (chatDate.contains(curDate)) {
+                    format = new SimpleDateFormat("hh:mm aa");
+                    time = format.format(date);
+                    mTime.setText(time);
+                    Log.e(TAG, "Adapter Time Matches");
+
+                } else {
+                    format = new SimpleDateFormat("dd-MM-yyyy");
+                    time = format.format(date);
+                    Log.e(TAG, "Time doesnt Match");
+                    mTime.setText(time);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Chat Adapter Time Exception: " + e.toString());
+            }
+        }
+        catch (Exception e){
+
+        }
+
         return  convertView;
 
     }

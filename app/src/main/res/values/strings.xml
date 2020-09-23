@@ -21,4 +21,6 @@
     <string name="unfriend">UNFRIEND</string>
     <string name="cancel">Cancel</string>
     <string name="send_request">Send request</string>
+    <string name="accept">ACCEPT</string>
+    <string name="decline">DECLINE</string>
 </resources>
