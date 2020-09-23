@@ -106,10 +106,6 @@ public class ChatListActivity extends AppCompatActivity {
         userKey = intent.getStringExtra("KEY");
         userName = intent.getStringExtra("NAME");
 
-        adapter = new chatAdapter(ChatListActivity.this, mList);
-        listView = findViewById(R.id.chat_list_view);
-        listView.setAdapter(adapter);
-
         Log.e(TAG, "onCreate: " + USER_NAME + userName + userKey);
 
         try {
@@ -430,6 +426,7 @@ public class ChatListActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        ref.child("ONLINE").child(FirebaseAuth.getInstance().getUid()).setValue("OFFLINE");
         mCount = 0;
     }
 
@@ -444,6 +441,7 @@ public class ChatListActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        ref.child("ONLINE").child(FirebaseAuth.getInstance().getUid()).setValue("ONLINE");
         countRef.child(userKey).child(mAuth.getUid()).setValue("0");
         database.getReference().child("TOKENS").child(mAuth.getUid()).setValue(FirebaseInstanceId.getInstance().getToken());
 
@@ -474,6 +472,7 @@ public class ChatListActivity extends AppCompatActivity {
                         map.put("TIME", data.mTime);
                         map.put("MESSAGE", data.mMessage);
                         mList.add(map);
+
                     }
                 }
 
@@ -490,6 +489,9 @@ public class ChatListActivity extends AppCompatActivity {
                     public void run() {
                         // UI code goes here
                         Log.e(TAG, "run: Adapter called");
+                        adapter = new chatAdapter(ChatListActivity.this, mList);
+                        listView = findViewById(R.id.chat_list_view);
+                        listView.setAdapter(adapter);
                         adapter.notifyDataSetChanged();
 
                         eventListener = new ValueEventListener() {
@@ -510,6 +512,7 @@ public class ChatListActivity extends AppCompatActivity {
                                                 map.put("TO", snap.child("TO").getValue());
                                                 map.put("TIME", snap.child("TIME").getValue().toString());
                                                 mList.add(map);
+                                                adapter.notifyDataSetChanged();
                                                 ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size()-1).get("MESSAGE").toString());
                                                 Log.e(TAG, "onDataChange: Senders Message" + snap.getKey());
                                                 AsyncMessage(map, snap.getKey());
@@ -521,7 +524,6 @@ public class ChatListActivity extends AppCompatActivity {
                                     catch (Exception e){
                                         Log.e(TAG, "onDataChange: " + e.toString() );
                                     }
-
                                     adapter.notifyDataSetChanged();
                                 }
                             }
@@ -603,5 +605,8 @@ public class ChatListActivity extends AppCompatActivity {
 
         }
     }
+
+
+
 }
 

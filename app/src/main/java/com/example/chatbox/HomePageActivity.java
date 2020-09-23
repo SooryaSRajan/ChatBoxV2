@@ -249,7 +249,18 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         super.onDestroy();
         Log.e(TAG, "onDestroy: " );
 
+    }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("OFFLINE");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("ONLINE");
 
     }
 }

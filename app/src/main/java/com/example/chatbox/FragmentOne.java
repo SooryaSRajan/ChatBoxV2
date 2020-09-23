@@ -60,6 +60,7 @@ public class FragmentOne extends Fragment {
     private ValueEventListener listener;
     Boolean listenerFlag = true;
     profileListAdapter adapter;
+    private Boolean flag = false;
 
     private ValueEventListener countListener;
     private static ListView listView;
@@ -251,20 +252,21 @@ public class FragmentOne extends Fragment {
         FirebaseDatabase.getInstance().getReference().child("LAST MESSAGE").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for(int i = 0; i< profileMap.size(); i++) {
-                try {
-                    HashMap mMap = profileMap.get(i);
-                    String lastMessage = snapshot.child(firebaseUser.getUid()).child(mMap.get("KEY").toString()).getValue().toString();
-                    mMap.put("LAST MESSAGE", lastMessage);
-                    Log.e(TAG, "onDataChange: " + lastMessage);
-                    profileMap.set(i, mMap);
-                    searchMap.set(i, mMap);
-                }
-                catch (Exception e){
+                if(listenerFlag) {
+                    for (int i = 0; i < profileMap.size(); i++) {
+                        try {
+                            HashMap mMap = profileMap.get(i);
+                            String lastMessage = snapshot.child(firebaseUser.getUid()).child(mMap.get("KEY").toString()).getValue().toString();
+                            mMap.put("LAST MESSAGE", lastMessage);
+                            Log.e(TAG, "onDataChange: " + lastMessage);
+                            profileMap.set(i, mMap);
+                            searchMap.set(i, mMap);
+                        } catch (Exception e) {
 
+                        }
+                    }
+                    ListViewUpdater();
                 }
-                }
-                ListViewUpdater();
                 }
 
             @Override
@@ -285,20 +287,8 @@ public class FragmentOne extends Fragment {
 
 
     public void ListViewUpdater() {
-        Boolean flag = false;
-        try{
-            Toolbar toolbar = getActivity().findViewById(R.id.search_bar_tool_bar);
-            if(toolbar.getVisibility() == View.VISIBLE){
-                flag = true;
-            }
-            else {
-                flag = false;
-            }
-        }
-        catch (Exception e){
 
-        }
-        if (getActivity() != null && flag == false) {
+        if (getActivity() != null) {
             adapter.notifyDataSetChanged();
         }
     }
@@ -327,44 +317,45 @@ public class FragmentOne extends Fragment {
         listener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if(listenerFlag)
-                for (DataSnapshot snap : snapshot.getChildren()) {
-                    Log.e(TAG, "onDataChange: sorter" + snap.getKey());
-                    for (int j = 0; j <= profileMap.size() - 1; j++) {
-                        HashMap map = profileMap.get(j);
-                        if (snap.getKey().contains(map.get("KEY").toString())) {
-                            Log.e(TAG, "onDataChange Sorter: Data Add Error");
-                            map.put("DATE", snap.getValue().toString());
-                        try {
-                            searchMap.set(j, map);
-                            profileMap.set(j, map);
-                        }
-                        catch (Exception e){
+                if(listenerFlag) {
+                    for (DataSnapshot snap : snapshot.getChildren()) {
+                        Log.e(TAG, "onDataChange: sorter" + snap.getKey());
+                        for (int j = 0; j <= profileMap.size() - 1; j++) {
+                            HashMap map = profileMap.get(j);
+                            if (snap.getKey().contains(map.get("KEY").toString())) {
+                                Log.e(TAG, "onDataChange Sorter: Data Add Error");
+                                map.put("DATE", snap.getValue().toString());
+                                try {
+                                    searchMap.set(j, map);
+                                    profileMap.set(j, map);
+                                } catch (Exception e) {
 
+                                }
+
+                            }
                         }
 
-                        }
                     }
+
+                    Collections.sort(profileMap, new Comparator<HashMap>() {
+                        @Override
+                        public int compare(HashMap o1, HashMap o2) {
+                            return o1.get("DATE").toString().compareTo(o2.get("DATE").toString());
+                        }
+                    });
+
+
+                    Collections.sort(searchMap, new Comparator<HashMap>() {
+                        @Override
+                        public int compare(HashMap o1, HashMap o2) {
+                            return o1.get("DATE").toString().compareTo(o2.get("DATE").toString());
+                        }
+                    });
+
+                    Collections.reverse(profileMap);
+                    Collections.reverse(searchMap);
+                    ListViewUpdater();
                 }
-
-                Collections.sort(profileMap, new Comparator<HashMap>() {
-                    @Override
-                    public int compare(HashMap o1, HashMap o2) {
-                        return o1.get("DATE").toString().compareTo(o2.get("DATE").toString());
-                    }
-                });
-
-
-                Collections.sort(searchMap, new Comparator<HashMap>() {
-                    @Override
-                    public int compare(HashMap o1, HashMap o2) {
-                        return o1.get("DATE").toString().compareTo(o2.get("DATE").toString());
-                    }
-                });
-
-                Collections.reverse(profileMap);
-                Collections.reverse(searchMap);
-                ListViewUpdater();
             }
 
 

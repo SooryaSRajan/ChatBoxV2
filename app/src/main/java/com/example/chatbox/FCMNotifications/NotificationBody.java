@@ -7,8 +7,7 @@ public class NotificationBody {
     @SerializedName("to")
     private String token;
 
-
-    @SerializedName("notification")
+    @SerializedName("data")
     private NotificationContent data;
 
     @SerializedName("priority")
