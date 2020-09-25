@@ -31,6 +31,7 @@ import android.widget.Toast;
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.example.chatbox.user_profile_database.profile;
 import com.google.android.material.tabs.TabLayout;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -53,6 +54,10 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
     FragmentTwo fragmentTwo;
     FragmentThree fragmentThree;
     ArrayList<HashMap> mMapList = new ArrayList<>();
+
+    UserListViewFragment(){
+        super();
+    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -135,9 +140,37 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
             }
         });
 
+
         viewPager.setAdapter(adapter);
         tabLayout.setupWithViewPager(viewPager);
+        viewPager.setOffscreenPageLimit(3);
+        final ArrayList<String> userList = new ArrayList<>();
+        final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER ACCOUNT CHANGE");
+        reference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+            if(snapshot.exists()) {
+                userList.clear();
+                for (DataSnapshot snap : snapshot.getChildren()) {
+                    Log.e(TAG, "onDataChange: Observer" + snap.getValue());
+                    if (snap.getValue().toString().contains(FirebaseAuth.getInstance().getUid())) {
+                        Log.e(TAG, "onDataChange: Observer contains");
+                    } else {
+                        Log.e(TAG, "onDataChange: Observer !contains");
+                        if(!snap.getKey().contains(FirebaseAuth.getInstance().getUid()))
+                        userList.add(snap.getKey());
+                    }
+                }
+                if(!userList.isEmpty())
+                refreshData(userList);
+            }
+            }
 
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
 
         return view;
     }
@@ -154,6 +187,30 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
         pullToRefresh.setRefreshing(false);
     }
 
+    public void refreshData(final ArrayList<String> refreshList){
+        final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER ACCOUNT CHANGE");
+        final ArrayList<HashMap> mList = new ArrayList<>();
+        final DatabaseReference mReference = FirebaseDatabase.getInstance().getReference("USER PROFILE");
+        mReference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (int i = 0; i < refreshList.size(); i++) {
+                    reference.child(refreshList.get(i)).child(FirebaseAuth.getInstance().getUid()).setValue("ADDED");
+                    HashMap map = new HashMap();
+                    map.put("KEY", refreshList.get(i));
+                    map.put("NAME", snapshot.child(refreshList.get(i)).child("NAME").getValue().toString());
+                    mList.add(map);
+                }
+                asyncTask(mList, 1);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+    }
     public  void refreshData(){
         mMapList.clear();
         final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER PROFILE");
@@ -166,7 +223,7 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
                     map.put("NAME", Objects.requireNonNull(dataSnapshot.child("NAME").getValue()).toString());
                     mMapList.add(map);
                 }
-                asyncTask(mMapList);
+                asyncTask(mMapList, 0);
             }
 
             @Override
@@ -176,29 +233,35 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
         });
     }
 
-    private void asyncTask(final ArrayList<HashMap> mapList) {
+    private void asyncTask(final ArrayList<HashMap> mapList, final int flag) {
         Thread thread = new Thread(){
             @Override
             public void run() {
                 try {
-                    UserProfileTable database = UserProfileTable.getInstance(getActivity());
-                    database.dao().deleteAll();
-                    for(HashMap map : mapList) {
-                        database = UserProfileTable.getInstance(getActivity());
-                        profile object = new profile(Objects.requireNonNull(map.get("KEY")).toString(), map.get("NAME").toString());
-                        database.dao().insertProfile(object);
-                        Log.e(TAG, "run: " + map.get("NAME").toString());
-                    }
-                    Handler handler = new Handler(Looper.getMainLooper());
-                    handler.post(new Runnable() {
-                        public void run() {
-                            // UI code goes here
-                            fragmentOne.asyncTask();
-                            fragmentTwo.asyncTask();
-                            fragmentThree.asyncTask();
+                        UserProfileTable database = UserProfileTable.getInstance(getActivity());
 
+                        if(flag == 0) {
+                            database.dao().deleteAll();
                         }
-                    });
+
+                        for (HashMap map : mapList) {
+                            database = UserProfileTable.getInstance(getActivity());
+                            profile object = new profile(Objects.requireNonNull(map.get("KEY")).toString(), map.get("NAME").toString());
+                            database.dao().insertProfile(object);
+                            Log.e(TAG, "run: " + map.get("NAME").toString());
+                        }
+                        Handler handler = new Handler(Looper.getMainLooper());
+                        handler.post(new Runnable() {
+                            public void run() {
+                                // UI code goes here
+                                fragmentOne.asyncTask();
+                                fragmentTwo.asyncTask();
+                                fragmentThree.asyncTask();
+
+                            }
+                        });
+
+
                 } catch (Exception e) {
                     Log.e("Table refresher", e.toString());
                 }
@@ -206,6 +269,7 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
             }
         };
         thread.start();
+
     }
 
 }

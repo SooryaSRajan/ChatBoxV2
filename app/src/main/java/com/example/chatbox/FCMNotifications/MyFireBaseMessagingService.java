@@ -59,16 +59,14 @@ public class MyFireBaseMessagingService extends FirebaseMessagingService {
                             .setDefaults(Notification.DEFAULT_SOUND)
                             .setDefaults(Notification.DEFAULT_VIBRATE)
                             .setDefaults(Notification.DEFAULT_VIBRATE);
-
             NotificationManager notificationManager =
                     (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel channel = new NotificationChannel("CHANNEL_ID",
                         "Channel human readable title",
-                        NotificationManager.IMPORTANCE_DEFAULT);
+                        NotificationManager.IMPORTANCE_HIGH);
                 notificationManager.createNotificationChannel(channel);
-            }
+
             Random random = new Random();
             notificationManager.notify(random.nextInt(6000-100), notificationBuilder.build());
         }

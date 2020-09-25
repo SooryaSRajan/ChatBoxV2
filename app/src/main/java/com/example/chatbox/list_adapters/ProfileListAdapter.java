@@ -99,8 +99,7 @@ public class ProfileListAdapter extends BaseAdapter {
             }
 
             else if(mStatus.contains("OFFLINE")){
-                status.setVisibility(View.VISIBLE);
-                status.setBackground(ContextCompat.getDrawable(context, R.drawable.offline));
+                status.setVisibility(View.INVISIBLE);
             }
 
         }

@@ -125,8 +125,10 @@ int nameFlag = 0, emailFlag = 0, passwordFlag = 0, passwordTwoFlag = 0;
                             public void onComplete(@NonNull Task<AuthResult> task) {
                                 if (task.isSuccessful()) {
                                     mRef.child("USER PROFILE").child(mAuth.getUid()).child("NAME").setValue(name);
-
                                     final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER PROFILE");
+                                    final DatabaseReference changeReference = FirebaseDatabase.getInstance().getReference("USER ACCOUNT CHANGE");
+                                    changeReference.child(mAuth.getUid()).setValue(0);
+
                                     reference.addListenerForSingleValueEvent(new ValueEventListener() {
                                         @Override
                                         public void onDataChange(@NonNull DataSnapshot snapshot) {

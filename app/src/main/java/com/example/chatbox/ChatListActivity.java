@@ -5,11 +5,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,7 +19,12 @@ import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -31,6 +38,7 @@ import com.example.chatbox.FCMNotifications.RetrofitClient;
 import com.example.chatbox.MessageDatabase.MessageData;
 import com.example.chatbox.MessageDatabase.MessageDatabase;
 import com.example.chatbox.list_adapters.ChatAdapter;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -93,8 +101,8 @@ public class ChatListActivity extends AppCompatActivity {
     int otherCount;
     NotificationContent content;
     NotificationBody notificationBody;
-    RetrofitClient client;
     APIInterface apiInterface;
+    int onLongClickPosition = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,6 +115,29 @@ public class ChatListActivity extends AppCompatActivity {
         userName = intent.getStringExtra("NAME");
 
         Log.e(TAG, "onCreate: " + USER_NAME + userName + userKey);
+        final ArrayList<String> messageDeleteList = new ArrayList<>();
+
+            ref.child("UNSENT MESSAGE KEY").child(mAuth.getUid()).child(userKey).addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    if(!snapshot.exists()){
+                        ref.child("UNSENT MESSAGE KEY").child(mAuth.getUid()).child(userKey).setValue("0");
+                    }
+
+                    else{
+                        for(DataSnapshot snap : snapshot.getChildren()){
+                            Log.e(TAG, "onDataChange: Removable keys" + snap.getKey());
+                            messageDeleteList.add(snap.getKey());
+                        }
+                        asyncRemoveMessage(messageDeleteList);
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+
+                }
+            });
 
         try {
             refToken = database.getReference().child("TOKENS").child(userKey);
@@ -169,6 +200,63 @@ public class ChatListActivity extends AppCompatActivity {
                 startActivityForResult(i, 0);
             }
         });
+
+        listView = findViewById(R.id.chat_list_view);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(ChatListActivity.this);
+        final View builderView = getLayoutInflater().inflate(R.layout.unsend_message_layout, null);
+        builder.setView(builderView);
+        final android.app.AlertDialog alertDialog = builder.create();
+
+            builderView.findViewById(R.id.unsend_message).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    final String keys = mList.get(onLongClickPosition).get("KEY").toString();
+                    Log.e(TAG, "onClick: " + keys );
+                    ref.child("NEW MESSAGE").child(keys).removeValue(new DatabaseReference.CompletionListener() {
+                        @Override
+                        public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference refer) {
+                            refMain.child(keys).removeValue();
+                            mList.remove(onLongClickPosition);
+                            adapter.notifyDataSetChanged();
+                            asyncRemoveMessage(keys);
+                            ref.child("UNSENT MESSAGE KEY").child(userKey).child(mAuth.getUid()).child(keys).setValue("ADDED");
+
+                            Log.e(TAG, "onComplete: " + mList.size() + " " + onLongClickPosition);
+
+                            try {
+                                if (mList.size() == onLongClickPosition) {
+                                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                    ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                }
+                            }
+                            catch (Exception e) {
+                                if (mList.size() == 0) {
+                                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("");
+                                    ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("");
+                                }
+                            }
+
+                        }
+                    });
+                    alertDialog.dismiss();
+                }
+            });
+
+            listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+                @Override
+                public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                    try {
+                        if (mList.get(position).get("FROM").toString().contains(mAuth.getUid())) {
+                            onLongClickPosition = position;
+                            alertDialog.show();
+                        }
+                    } catch (Exception e) {
+
+                    }
+                    return false;
+                }
+            });
 
         mOnlineStatus = findViewById(R.id.online_status);
         mTypingStatus = findViewById(R.id.typing_status);
@@ -320,8 +408,6 @@ public class ChatListActivity extends AppCompatActivity {
         map.put("TO", intent.getStringExtra("KEY"));
         map.put("TIME",getTime());
 
-        mList.add(map);
-        adapter.notifyDataSetChanged();
 
         writeToFirebase(map, intent.getStringExtra("KEY"));
         writeNotification(Message, USER_NAME);
@@ -358,16 +444,20 @@ public class ChatListActivity extends AppCompatActivity {
         ref.child("NEW MESSAGE").push().setValue(temp, new DatabaseReference.CompletionListener() {
             @Override
             public void onComplete(@Nullable DatabaseError databaseError, @NonNull DatabaseReference databaseReference) {
+                Log.e(TAG, "onComplete: " + databaseReference);
                 ref.child("PROFILE ORDER").child(mAuth.getUid()).child(ID).setValue(getDateTime());
                 ref.child("PROFILE ORDER").child(ID).child(mAuth.getUid()).setValue(getDateTime());
                 ref.child("UNREAD COUNT").child(mAuth.getUid()).child(ID).setValue(Integer.toString(++mCount));
-                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size()-1).get("MESSAGE").toString());
-                ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(mList.get(mList.size()-1).get("MESSAGE").toString());
+                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(temp.get("MESSAGE").toString());
+                ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(temp.get("MESSAGE").toString());
+                ref.child("UNREAD MESSAGE").child(databaseReference.getKey()).setValue(temp);
+                temp.put("KEY", databaseReference.getKey());
+                mList.add(temp);
+                adapter.notifyDataSetChanged();
                 AsyncMessage(temp, databaseReference.getKey());
             }
 
         });
-        ref.child("UNREAD MESSAGE").push().setValue(temp);
     }
 
     public void removeChild(ArrayList<String> keyList){
@@ -455,6 +545,7 @@ public class ChatListActivity extends AppCompatActivity {
                 MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
                 messageData = database.dao().getMessages();
 
+                mList.clear();
                 for(int i = 0; i<messageData.size(); i++) {
                     MessageData data = messageData.get(i);
                     if (data.mFrom.contains(userKey) || data.mTo.contains(userKey)) {
@@ -471,6 +562,7 @@ public class ChatListActivity extends AppCompatActivity {
                         map.put("TO", data.mTo);
                         map.put("TIME", data.mTime);
                         map.put("MESSAGE", data.mMessage);
+                        map.put("KEY", data.key);
                         mList.add(map);
 
                     }
@@ -483,7 +575,6 @@ public class ChatListActivity extends AppCompatActivity {
                     }
                 });
 
-
                 Handler handler = new Handler(Looper.getMainLooper());
                 handler.post(new Runnable() {
                     public void run() {
@@ -492,6 +583,7 @@ public class ChatListActivity extends AppCompatActivity {
                         adapter = new ChatAdapter(ChatListActivity.this, mList);
                         listView = findViewById(R.id.chat_list_view);
                         listView.setAdapter(adapter);
+
                         adapter.notifyDataSetChanged();
 
                         eventListener = new ValueEventListener() {
@@ -606,7 +698,27 @@ public class ChatListActivity extends AppCompatActivity {
         }
     }
 
+    void asyncRemoveMessage(final String key){
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
+                database.dao().deleteTuple(key);
+            }
+        });
+    }
 
+    void asyncRemoveMessage(final ArrayList<String> key){
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
+                for(String keys : key)
+                database.dao().deleteTuple(keys);
+            }
+        });
+        AsyncMessage();
+    }
 
 }
 

@@ -64,6 +64,10 @@ public class FragmentOne extends Fragment {
     private ValueEventListener countListener;
     private static ListView listView;
 
+    FragmentOne(){
+        super();
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         Log.e(ContentValues.TAG, "onCreate: Fragment 1" );
@@ -80,6 +84,9 @@ public class FragmentOne extends Fragment {
         view = inflater.inflate(R.layout.fragment_one, container, false);
 
         listView = view.findViewById(R.id.list_view);
+        Log.e(TAG, "onCreateView: l1" + R.id.list_view);
+        Log.e(TAG, "onCreateView: l2" + R.id.list_view_two);
+        Log.e(TAG, "onCreateView: l3" + R.id.list_view_three);
         adapter = new ProfileListAdapter(getActivity(), searchMap);
         listView.setAdapter(adapter);
 
@@ -143,14 +150,8 @@ public class FragmentOne extends Fragment {
                 try {
                     UserProfileTable database = UserProfileTable.getInstance(getContext());
 
-                    if(profileMap!=null)
-                        profileMap.clear();
-
                     if(profileList!=null)
                         profileList.clear();
-
-                    if(searchMap!=null)
-                        searchMap.clear();
 
                     if(mainMap!=null)
                         mainMap.clear();
@@ -172,7 +173,7 @@ public class FragmentOne extends Fragment {
                     mRef.addValueEventListener(mainListener);
                 }
                 catch(Exception e){
-                    Log.e("Async List View", e.toString());
+                    Log.e("Async List View 1", e.toString());
                 }
 
             }});
@@ -313,6 +314,7 @@ public class FragmentOne extends Fragment {
                                 try {
                                     searchMap.set(j, map);
                                     profileMap.set(j, map);
+                                    ListViewUpdater();
                                 } catch (Exception e) {
 
                                 }
@@ -355,7 +357,7 @@ public class FragmentOne extends Fragment {
 
     public void SearchBackPressed(){
         noUserFound.setVisibility(View.GONE);
-        ListViewUpdater();
+       // stViewUpdater();
         listenerFlag = true;
 
         mOrderRef.addValueEventListener(listener);

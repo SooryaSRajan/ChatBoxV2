@@ -18,4 +18,7 @@ public interface DaoMessage {
     @Query("DELETE FROM MessageTable")
     void deleteAll();
 
+    @Query("DELETE FROM MessageTable WHERE `key` ==:key")
+    void deleteTuple(String key);
+
 }

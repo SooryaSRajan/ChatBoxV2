@@ -31,6 +31,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.iid.FirebaseInstanceId;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,19 +43,15 @@ import static androidx.constraintlayout.widget.Constraints.TAG;
 public class FragmentThree extends Fragment {
     private List<profile> profileList = null;
     private List<HashMap> profileMap = new ArrayList<>(), searchMap = new ArrayList<>();
-    final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
-    DatabaseReference mRef = FirebaseDatabase.getInstance().getReference().child("REQUEST");
-    DatabaseReference mDateRef = FirebaseDatabase.getInstance().getReference().child("PROFILE ORDER");
-    private static ListView listView;
+    private final FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+    private DatabaseReference mRef = FirebaseDatabase.getInstance().getReference().child("REQUEST");
+    private DatabaseReference mDateRef = FirebaseDatabase.getInstance().getReference().child("PROFILE ORDER");
     private TextView noUserFound;
     private View view;
-    private View requestBuilderView;
-    private Button mCancel;
     private TextView mUnfollowBuilderTitle, mUnfollowBuilderSubTitle;
-    private Button mFriend, mFriendCancel;
     private TextView mfollowBuilderTitle, mFollowerBuilderSubTitle;
     private int currentListPosition = 0;
-    ProfileListAdapter adapter;
+    private ProfileListAdapter adapter;
 
 
     @Override
@@ -66,8 +63,8 @@ public class FragmentThree extends Fragment {
         noUserFound = view.findViewById(R.id.no_user_found_3);
         noUserFound.setVisibility(View.GONE);
 
-        View builderView = getLayoutInflater().inflate(R.layout.unfollow_alert_layout, null);
-        requestBuilderView = getLayoutInflater().inflate(R.layout.request_alert_layout, null);
+        @SuppressLint("InflateParams") View builderView = getLayoutInflater().inflate(R.layout.unfollow_alert_layout, null);
+        @SuppressLint("InflateParams") View requestBuilderView = getLayoutInflater().inflate(R.layout.request_alert_layout, null);
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setView(builderView);
@@ -78,13 +75,12 @@ public class FragmentThree extends Fragment {
         final AlertDialog alertDialogFriend = friendBuilder.create();
 
         Button mUnfollow = builderView.findViewById(R.id.unfollow_confirm);
-        mCancel = builderView.findViewById(R.id.unfollow_cancel);
+        Button mCancel = builderView.findViewById(R.id.unfollow_cancel);
         mUnfollowBuilderSubTitle = builderView.findViewById(R.id.unfollow_sub_title);
         mUnfollowBuilderTitle = builderView.findViewById(R.id.unfollow_title);
 
-
-        mFriend = requestBuilderView.findViewById(R.id.friend_confirm);
-        mFriendCancel = requestBuilderView.findViewById(R.id.friend_cancel);
+        Button mFriend = requestBuilderView.findViewById(R.id.friend_confirm);
+        Button mFriendCancel = requestBuilderView.findViewById(R.id.friend_cancel);
         mfollowBuilderTitle = requestBuilderView.findViewById(R.id.friend_title);
         mFollowerBuilderSubTitle = requestBuilderView.findViewById(R.id.friend_subtitle);
 
@@ -94,6 +90,20 @@ public class FragmentThree extends Fragment {
                 mRef.child(Objects.requireNonNull(searchMap.get(currentListPosition)
                         .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("REQUESTED");
                 alertDialogFriend.dismiss();
+
+                FirebaseDatabase.getInstance().getReference().child("TOKENS").child(searchMap
+                        .get(currentListPosition).get("KEY").toString()).addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+
+                    }
+                });
+
 
             }
         });
@@ -132,7 +142,7 @@ public class FragmentThree extends Fragment {
             }
         });
 
-        listView = view.findViewById(R.id.list_view_three);
+        ListView listView = view.findViewById(R.id.list_view_three);
         adapter = new ProfileListAdapter(getActivity(), searchMap);
         listView.setAdapter(adapter);
 
@@ -169,7 +179,6 @@ public class FragmentThree extends Fragment {
                             mFollowerBuilderSubTitle.setText("Are you sure you want to send request to " + searchMap.get(position).get("NAME").toString() + "? \nYou won't be able to cancel your request once its sent");
                             alertDialogFriend.show();
 
-
                         }
                     }
 
@@ -193,54 +202,48 @@ public class FragmentThree extends Fragment {
                 try {
                     UserProfileTable database = UserProfileTable.getInstance(getContext());
 
-                    if(profileMap!=null)
+                    if (profileMap != null)
                         profileMap.clear();
 
-                    if(profileList!=null)
+                    if (profileList != null)
                         profileList.clear();
 
-
-                    if(searchMap!=null)
-                        searchMap.clear();
-
+                    if (searchMap != null) {
+                    searchMap.clear();
+                }
                     profileList = database.dao().getProfile();
                     Log.e(TAG, "run: For Loop out");
-
-                    for(int i = 0; i<profileList.size(); i++){
-                        profile mProfile = profileList.get(i);
-                        if(!mProfile.user_key.contains(firebaseUser.getUid())) {
-                            HashMap map = new HashMap();
-                            map.put("NAME", mProfile.name);
-                            map.put("KEY", mProfile.user_key);
-                            profileMap.add(map);
-                            searchMap.add(map);
-                            Handler handler = new Handler(Looper.getMainLooper());
-                            handler.post(new Runnable() {
-                                public void run() {
-                                    // UI code goes here
+                    Handler handler = new Handler(Looper.getMainLooper());
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            for(int i = 0; i<profileList.size(); i++){
+                                profile mProfile = profileList.get(i);
+                                if(!mProfile.user_key.contains(firebaseUser.getUid())) {
+                                    HashMap map = new HashMap();
+                                    map.put("NAME", mProfile.name);
+                                    map.put("KEY", mProfile.user_key);
+                                    profileMap.add(map);
+                                    searchMap.add(map);
                                     ListViewUpdater();
-
+                                    Log.e(TAG, "run: For Loop");
                                 }
-                            });
-
-                            Log.e(TAG, "run: For Loop");
+                            }
                         }
-                    }
+                    });
 
                 }
                 catch(Exception e){
-                    Log.e("Async List View", e.toString());
+                    Log.e("Async List View 3", e.toString());
                 }
 
             }});
     }
 
     public void ListViewUpdater(){
-
         if(getActivity()!=null) {
             adapter.notifyDataSetChanged();
         }
-
     }
 
     public void searchFunction(String string) {
@@ -252,13 +255,13 @@ public class FragmentThree extends Fragment {
             for (HashMap i : profileMap) {
                 if (i.get("NAME").toString().toLowerCase().contains(string.trim().toLowerCase())) {
                     searchMap.add(i);
+                    adapter.notifyDataSetChanged();
                     noUserFound.setVisibility(View.GONE);
-                    ListViewUpdater();
                 }
             }
             if (searchMap.isEmpty()) {
+                adapter.notifyDataSetChanged();
                 noUserFound.setVisibility(View.VISIBLE);
-                ListViewUpdater();
             }
         }
     }
@@ -272,8 +275,5 @@ public class FragmentThree extends Fragment {
         Log.e(ContentValues.TAG, "onResume: Fragment 3" );
         super.onResume();
 
-        if(!profileMap.isEmpty()){
-            ListViewUpdater();
-        }
     }
 }

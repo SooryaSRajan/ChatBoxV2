@@ -16,7 +16,12 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.example.chatbox.FCMNotifications.APIInterface;
+import com.example.chatbox.FCMNotifications.NotificationBody;
+import com.example.chatbox.FCMNotifications.NotificationContent;
+import com.example.chatbox.FCMNotifications.RetrofitClient;
 import com.example.chatbox.list_adapters.ProfileListAdapter;
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.example.chatbox.user_profile_database.profile;
@@ -28,6 +33,10 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -37,7 +46,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 import static androidx.constraintlayout.widget.Constraints.TAG;
+import static com.example.chatbox.Constants.USER_NAME;
 
 
 public class FragmentTwo extends Fragment {
@@ -54,6 +69,7 @@ public class FragmentTwo extends Fragment {
     Button accept, deny;
     int listPosition = 0;
     ProfileListAdapter adapter;
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -115,6 +131,7 @@ public class FragmentTwo extends Fragment {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 profileMap.clear();
                 searchMap.clear();
+                adapter.notifyDataSetChanged();
                 if(listenerFlag)
                     for (int i = 0; i < mainMap.size(); i++) {
                         if (snapshot.child("REQUEST").child(firebaseUser.getUid()).hasChild(Objects.requireNonNull(mainMap.get(i).get("KEY"))
@@ -125,7 +142,7 @@ public class FragmentTwo extends Fragment {
                             if(token.contains("REQUESTED")) {
                                 profileMap.add(mainMap.get(i));
                                 searchMap.add(mainMap.get(i));
-                                ListViewUpdater();
+                                adapter.notifyDataSetChanged();
 
                             }
                         }
@@ -165,14 +182,8 @@ public class FragmentTwo extends Fragment {
                 try {
                     UserProfileTable database = UserProfileTable.getInstance(getContext());
 
-                    if(profileMap!=null)
-                        profileMap.clear();
-
                     if(profileList!=null)
                         profileList.clear();
-
-                    if(searchMap!=null)
-                        searchMap.clear();
 
                     if(mainMap!=null)
                         mainMap.clear();
@@ -193,7 +204,7 @@ public class FragmentTwo extends Fragment {
                     mRef.addValueEventListener(listener);
                 }
                 catch(Exception e) {
-                    Log.e("Async List View", e.toString());
+                    Log.e("Async List View 2", e.toString());
                 }
 
             }
@@ -254,4 +265,5 @@ public class FragmentTwo extends Fragment {
         super.onDetach();
     }
 
-}
+
+    }
