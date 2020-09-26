@@ -28,6 +28,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.PopupMenu;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -129,6 +131,7 @@ public class ChatListActivity extends AppCompatActivity {
                             Log.e(TAG, "onDataChange: Removable keys" + snap.getKey());
                             messageDeleteList.add(snap.getKey());
                         }
+                        ref.child("UNSENT MESSAGE KEY").child(mAuth.getUid()).child(userKey).setValue("0");
                         asyncRemoveMessage(messageDeleteList);
                     }
                 }
@@ -211,34 +214,7 @@ public class ChatListActivity extends AppCompatActivity {
             builderView.findViewById(R.id.unsend_message).setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    final String keys = mList.get(onLongClickPosition).get("KEY").toString();
-                    Log.e(TAG, "onClick: " + keys );
-                    ref.child("NEW MESSAGE").child(keys).removeValue(new DatabaseReference.CompletionListener() {
-                        @Override
-                        public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference refer) {
-                            refMain.child(keys).removeValue();
-                            mList.remove(onLongClickPosition);
-                            adapter.notifyDataSetChanged();
-                            asyncRemoveMessage(keys);
-                            ref.child("UNSENT MESSAGE KEY").child(userKey).child(mAuth.getUid()).child(keys).setValue("ADDED");
 
-                            Log.e(TAG, "onComplete: " + mList.size() + " " + onLongClickPosition);
-
-                            try {
-                                if (mList.size() == onLongClickPosition) {
-                                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
-                                    ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
-                                }
-                            }
-                            catch (Exception e) {
-                                if (mList.size() == 0) {
-                                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("");
-                                    ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("");
-                                }
-                            }
-
-                        }
-                    });
                     alertDialog.dismiss();
                 }
             });
@@ -246,10 +222,54 @@ public class ChatListActivity extends AppCompatActivity {
             listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
                 @Override
                 public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                    PopupMenu popupMenu= new PopupMenu(ChatListActivity.this, view);
+                        popupMenu.getMenuInflater().inflate(R.menu.chat_context_menu, popupMenu.getMenu());
+
                     try {
                         if (mList.get(position).get("FROM").toString().contains(mAuth.getUid())) {
                             onLongClickPosition = position;
-                            alertDialog.show();
+                            popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                                @Override
+                                public boolean onMenuItemClick(MenuItem item) {
+                                    final String keys = mList.get(onLongClickPosition).get("KEY").toString();
+
+                                    if(item.getItemId() == R.id.unsend_message_menu){
+                                        Log.e(TAG, "onClick: " + keys );
+                                        ref.child("NEW MESSAGE").child(keys).removeValue(new DatabaseReference.CompletionListener() {
+                                            @Override
+                                            public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference refer) {
+                                                refMain.child(keys).removeValue();
+                                                mList.remove(onLongClickPosition);
+                                                adapter.notifyDataSetChanged();
+                                                asyncRemoveMessage(keys);
+                                                ref.child("UNSENT MESSAGE KEY").child(userKey).child(mAuth.getUid()).child(keys).setValue("ADDED");
+
+                                                Log.e(TAG, "onComplete: " + mList.size() + " " + onLongClickPosition);
+
+                                                try {
+                                                    if (mList.size() == onLongClickPosition) {
+                                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                                        ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                                    }
+                                                }
+                                                catch (Exception e) {
+                                                    if (mList.size() == 0) {
+                                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("");
+                                                        ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("");
+                                                    }
+                                                }
+
+                                            }
+                                        });
+                                    }
+                                    if(item.getItemId() == R.id.remove_local_message){
+                                        asyncRemoveMessage(keys);
+                                    }
+                                    return true;
+                                }
+                            });
+                            popupMenu.show();
+                        //    alertDialog.show();
                         }
                     } catch (Exception e) {
 
@@ -441,6 +461,8 @@ public class ChatListActivity extends AppCompatActivity {
     }
 
     public void writeToFirebase(final HashMap temp, final String ID) {
+        mList.add(temp);
+        adapter.notifyDataSetChanged();
         ref.child("NEW MESSAGE").push().setValue(temp, new DatabaseReference.CompletionListener() {
             @Override
             public void onComplete(@Nullable DatabaseError databaseError, @NonNull DatabaseReference databaseReference) {
@@ -452,6 +474,7 @@ public class ChatListActivity extends AppCompatActivity {
                 ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(temp.get("MESSAGE").toString());
                 ref.child("UNREAD MESSAGE").child(databaseReference.getKey()).setValue(temp);
                 temp.put("KEY", databaseReference.getKey());
+                mList.remove(mList.size()-1);
                 mList.add(temp);
                 adapter.notifyDataSetChanged();
                 AsyncMessage(temp, databaseReference.getKey());
@@ -709,15 +732,71 @@ public class ChatListActivity extends AppCompatActivity {
     }
 
     void asyncRemoveMessage(final ArrayList<String> key){
+        final int[] flag = {0};
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
                 MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
-                for(String keys : key)
-                database.dao().deleteTuple(keys);
+                for(String keys : key){
+                    database.dao().deleteTuple(keys);
+                    flag[0]++;
+                }
+                if(flag[0]!=0){{
+                 AsyncUpdater();
+                }}
             }
         });
-        AsyncMessage();
+    }
+
+    void AsyncUpdater() {
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
+                messageData = database.dao().getMessages();
+
+                mList.clear();
+                for (int i = 0; i < messageData.size(); i++) {
+                    MessageData data = messageData.get(i);
+                    if (data.mFrom.contains(userKey) || data.mTo.contains(userKey)) {
+                        HashMap map = new HashMap();
+                        Log.e(TAG, "run: " + data.mMessage);
+                        Log.e(TAG, "run: " + data.mMessage);
+                        if (data.mFrom.contains(userKey))
+                            map.put("NAME", userName);
+
+                        if (data.mTo.contains(userKey))
+                            map.put("NAME", USER_NAME);
+
+                        map.put("FROM", data.mFrom);
+                        map.put("TO", data.mTo);
+                        map.put("TIME", data.mTime);
+                        map.put("MESSAGE", data.mMessage);
+                        map.put("KEY", data.key);
+                        mList.add(map);
+
+                    }
+                }
+
+                Collections.sort(mList, new Comparator<HashMap>() {
+                    @Override
+                    public int compare(HashMap o1, HashMap o2) {
+                        return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
+                    }
+                });
+
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.post(new Runnable() {
+                    public void run() {
+                        // UI code goes here
+                        Log.e(TAG, "run: Adapter called");
+                        adapter.notifyDataSetChanged();
+                    }
+                });
+            }
+        };
+        thread.start();
     }
 
 }

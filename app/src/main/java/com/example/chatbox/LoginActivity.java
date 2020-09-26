@@ -11,6 +11,7 @@ import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.example.chatbox.MessageDatabase.MessageData;
@@ -49,6 +50,9 @@ int flag1, flag2;
         editTextMail = findViewById(R.id.user_email_sign_in);
         editTextPassword = findViewById(R.id.user_password_sign_in);
         forgotPassword = findViewById(R.id.forgot_password);
+
+        RelativeLayout loadingLayout = findViewById(R.id.login_loading_screen);
+        loadingLayout.setVisibility(View.GONE);
 
         signIn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -92,6 +96,12 @@ int flag1, flag2;
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if(task.isSuccessful()){
+                    RelativeLayout relativeLayout = findViewById(R.id.loading_relative_layout);
+                    relativeLayout.setVisibility(View.GONE);
+
+                    RelativeLayout loadingLayout = findViewById(R.id.login_loading_screen);
+                    loadingLayout.setVisibility(View.VISIBLE);
+
                     Log.e(TAG, "onComplete: Logged in" );
                     Toast.makeText(LoginActivity.this, "Logged In Successfully", Toast.LENGTH_SHORT).show();
                     final FirebaseAuth mAuth = FirebaseAuth.getInstance();
@@ -106,8 +116,29 @@ int flag1, flag2;
                             for(DataSnapshot dataSnapshot : snapshot.getChildren()){
 
                                 asyncTask(dataSnapshot.getKey(),  dataSnapshot.child("NAME").getValue().toString());
+                                Log.e(TAG, "onDataChange: Users added" );
 
                             }
+                            messageReference.addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                    for (DataSnapshot snap : snapshot.getChildren()) {
+                                        if (snap.child("TO").getValue().toString().contains(mAuth.getUid()) ||
+                                                snap.child("FROM").getValue().toString().contains(mAuth.getUid())) {
+                                            AsyncMessage(snap.getKey(), snap.child("FROM").getValue().toString(),
+                                                    snap.child("TO").getValue().toString(), snap.child("TIME").getValue().toString(),
+                                                    snap.child("MESSAGE").getValue().toString());
+                                            Log.e(TAG, "onMessageAdded! " );
+                                        }
+                                    }
+                                    startActivity(intent);
+                                    finish();
+                                }
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError error) {
+                                    Log.e(TAG, "onCancelled: " + error );
+                                }
+                            });
                         }
 
                         @Override
@@ -115,27 +146,6 @@ int flag1, flag2;
 
                         }
                     });
-
-                    messageReference.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            for (DataSnapshot snap : snapshot.getChildren()) {
-                                if (snap.child("TO").getValue().toString().contains(mAuth.getUid()) ||
-                                        snap.child("FROM").getValue().toString().contains(mAuth.getUid())) {
-                                        AsyncMessage(snap.getKey(), snap.child("FROM").getValue().toString(),
-                                                snap.child("TO").getValue().toString(), snap.child("TIME").getValue().toString(),
-                                                snap.child("MESSAGE").getValue().toString());
-                                    Log.e(TAG, "onMessageAdded! " );
-                                }
-                            }
-                        }
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-                                Log.e(TAG, "onCancelled: " + error );
-                            }
-                        });
-                startActivity(intent);
-                finish();
             }
             }
         });

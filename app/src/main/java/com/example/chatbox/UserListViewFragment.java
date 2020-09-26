@@ -24,6 +24,7 @@ import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -90,7 +91,7 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
         adapter.addFragment(fragmentThree, "Find Friends");
 
 
-        EditText mSearch = getActivity().findViewById(R.id.search_bar);
+        final EditText mSearch = getActivity().findViewById(R.id.search_bar);
         final ViewPager viewPager = view.findViewById(R.id.view_pager);
         pullToRefresh = getActivity().findViewById(R.id.pullToRefresh);
         pullToRefresh.setOnRefreshListener(this);
@@ -111,8 +112,6 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
                 else if(viewPager.getCurrentItem() == 1)
                     fragmentTwo.searchFunction(s.toString());
 
-
-
                 else if(viewPager.getCurrentItem() == 2)
                     fragmentThree.searchFunction(s.toString());
 
@@ -124,14 +123,13 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
 
                 Log.e(TAG, "afterTextChanged: Called" );
                 if(toolbar.getVisibility() == View.GONE){
+
                     Log.e(TAG, "afterTextChanged: Button Gone" );
                     if(viewPager.getCurrentItem() == 0)
                         fragmentOne.SearchBackPressed();
 
                     else if(viewPager.getCurrentItem() == 1)
                         fragmentTwo.SearchBackPressed();
-
-
 
                     else if(viewPager.getCurrentItem() == 2)
                         fragmentThree.SearchBackPressed();

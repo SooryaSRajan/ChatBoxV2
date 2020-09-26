@@ -23,6 +23,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -78,11 +80,19 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         toolbar = findViewById(R.id.search_bar_tool_bar);
         toolbar.setVisibility(View.GONE);
 
-        ImageButton searchBack = findViewById(R.id.search_back);
+        final ImageButton searchBack = findViewById(R.id.search_back);
+        final EditText searchBox = findViewById(R.id.search_bar);
 
         searchBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                try {
+                    InputMethodManager imm = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+                } catch (Exception e) {
+                    // TODO: handle exception
+                }
                 toolbar = findViewById(R.id.search_bar_tool_bar);
                 toolbar.setVisibility(View.GONE);
 

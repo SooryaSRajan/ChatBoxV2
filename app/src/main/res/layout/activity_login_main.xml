@@ -7,6 +7,11 @@
     android:layout_height="match_parent"
     tools:context=".SignUpActivity">
 
+    <RelativeLayout
+        android:id="@+id/loading_relative_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
     <TextView
         android:text="Sign In"
         android:textSize="60sp"
@@ -92,6 +97,22 @@
         android:layout_centerHorizontal="true"
         android:layout_below="@+id/sign_in_button" />
 
+    </RelativeLayout>
 
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/login_loading_screen">
+
+        <TextView
+            android:textColor="@color/colorWhite"
+            android:text="Downloading Data..."
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="80dp"/>
+
+    </RelativeLayout>
 
 </RelativeLayout>

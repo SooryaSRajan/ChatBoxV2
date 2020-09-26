@@ -34,6 +34,8 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -229,6 +231,19 @@ public class FragmentThree extends Fragment {
                                     Log.e(TAG, "run: For Loop");
                                 }
                             }
+                            Collections.sort(searchMap, new Comparator<HashMap>() {
+                                @Override
+                                public int compare(HashMap o1, HashMap o2) {
+                                    return o1.get("NAME").toString().compareTo(o2.get("NAME").toString());
+                                }
+                            });
+                            ListViewUpdater();
+                            Collections.sort(profileMap, new Comparator<HashMap>() {
+                                @Override
+                                public int compare(HashMap o1, HashMap o2) {
+                                    return o1.get("NAME").toString().compareTo(o2.get("NAME").toString());
+                                }
+                            });
                         }
                     });
 
