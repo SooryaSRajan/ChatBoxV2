@@ -4,8 +4,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -19,20 +19,15 @@ import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.ContextMenu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.PopupMenu;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.example.chatbox.FCMNotifications.APIInterface;
 import com.example.chatbox.FCMNotifications.NotificationBody;
 import com.example.chatbox.FCMNotifications.NotificationContent;
@@ -40,8 +35,8 @@ import com.example.chatbox.FCMNotifications.RetrofitClient;
 import com.example.chatbox.MessageDatabase.MessageData;
 import com.example.chatbox.MessageDatabase.MessageDatabase;
 import com.example.chatbox.list_adapters.ChatAdapter;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -50,10 +45,8 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -67,7 +60,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -78,8 +70,10 @@ import static com.example.chatbox.Constants.USER_NAME;
 public class ChatListActivity extends AppCompatActivity {
 
     Toolbar toolbar;
+    ArrayList<String> filteredKeys = new ArrayList<>();
     List<MessageData> messageData = null;
     ImageButton backButton;
+    ValueEventListener concurrentMessageReceiver = null;
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
     private DatabaseReference countRef = database.getReference().child("UNREAD COUNT"), ref = database.getReference(),
             ref2 = database.getReference(), onlineRef = database.getReference(), refMain = database.getReference().child("UNREAD MESSAGE"),
@@ -105,6 +99,7 @@ public class ChatListActivity extends AppCompatActivity {
     NotificationBody notificationBody;
     APIInterface apiInterface;
     int onLongClickPosition = 0;
+    ArrayList<String> keys;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,12 +107,16 @@ public class ChatListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_chat_list);
 
         final Intent intent = getIntent();
+        ref.child("ONLINE").child(mAuth.getUid()).setValue("ONLINE");
+        ref.child("ONLINE").child(mAuth.getUid()).onDisconnect().setValue("OFFLINE");
 
         userKey = intent.getStringExtra("KEY");
         userName = intent.getStringExtra("NAME");
+        keys = new ArrayList<>();
+        adapter = new ChatAdapter(ChatListActivity.this, mList);
+        AsyncMessage();
 
         Log.e(TAG, "onCreate: " + USER_NAME + userName + userKey);
-        final ArrayList<String> messageDeleteList = new ArrayList<>();
 
             ref.child("UNSENT MESSAGE KEY").child(mAuth.getUid()).child(userKey).addValueEventListener(new ValueEventListener() {
                 @Override
@@ -127,12 +126,28 @@ public class ChatListActivity extends AppCompatActivity {
                     }
 
                     else{
-                        for(DataSnapshot snap : snapshot.getChildren()){
-                            Log.e(TAG, "onDataChange: Removable keys" + snap.getKey());
-                            messageDeleteList.add(snap.getKey());
+                        for(final DataSnapshot snap : snapshot.getChildren()){
+                            int x = GetListPositionForKey(snap.getKey());
+                            if(x!=-1) {
+                                mList.remove(x);
+                                adapter.notifyDataSetChanged();
+                                Log.e(TAG, "onDataChange: Removable keys" + snap.getKey());
+                                AsyncTask.execute(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
+                                            database.dao().deleteTuple(snap.getKey());
+                                        } catch (Exception e) {
+
+                                        }
+                                    }
+                                });
+                            }
+
                         }
                         ref.child("UNSENT MESSAGE KEY").child(mAuth.getUid()).child(userKey).setValue("0");
-                        asyncRemoveMessage(messageDeleteList);
+
                     }
                 }
 
@@ -142,7 +157,40 @@ public class ChatListActivity extends AppCompatActivity {
                 }
             });
 
-        try {
+            ref.child("UNSENT MESSAGE KEY").child(userKey).child(mAuth.getUid()).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    for(final DataSnapshot snap : snapshot.getChildren()){
+                        Log.e(TAG, "onDataChange: Removable keys" + snap.getKey());
+                        int x =GetListPositionForKey(snap.getKey());
+                        if(x!=-1) {
+                            mList.remove(x);
+                            adapter.notifyDataSetChanged();
+                            AsyncTask.execute(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
+                                        database.dao().deleteTuple(snap.getKey());
+                                    } catch (Exception e) {
+
+                                    }
+                                }
+
+                            });
+                        }
+
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+            try {
             refToken = database.getReference().child("TOKENS").child(userKey);
             database.getReference().child("TOKENS").child(mAuth.getUid()).setValue(FirebaseInstanceId.getInstance().getToken());
 
@@ -166,7 +214,6 @@ public class ChatListActivity extends AppCompatActivity {
             Toast.makeText(this, userKey, Toast.LENGTH_SHORT).show();
         }
 
-        AsyncMessage();
          ref.child("TYPING").child(Objects.requireNonNull(intent.getStringExtra("KEY")))
                 .child(Objects.requireNonNull(mAuth.getUid())).setValue("NOT");
 
@@ -218,31 +265,52 @@ public class ChatListActivity extends AppCompatActivity {
                     alertDialog.dismiss();
                 }
             });
-
             listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
                 @Override
                 public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                     PopupMenu popupMenu= new PopupMenu(ChatListActivity.this, view);
                         popupMenu.getMenuInflater().inflate(R.menu.chat_context_menu, popupMenu.getMenu());
+                           onLongClickPosition = position;
 
                     try {
                         if (mList.get(position).get("FROM").toString().contains(mAuth.getUid())) {
-                            onLongClickPosition = position;
                             popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                                 @Override
                                 public boolean onMenuItemClick(MenuItem item) {
-                                    final String keys = mList.get(onLongClickPosition).get("KEY").toString();
+                                    if(onLongClickPosition == mList.size()){
+                                        --onLongClickPosition;
+                                    }
 
+                                    if(mList.size() == 0)
+                                        Log.e(TAG, "onMenuItemClick: Mlist empty" );
+
+                                    final String keys = mList.get(onLongClickPosition).get("KEY").toString();
                                     if(item.getItemId() == R.id.unsend_message_menu){
                                         Log.e(TAG, "onClick: " + keys );
+                                        final String finalKeys = keys;
                                         ref.child("NEW MESSAGE").child(keys).removeValue(new DatabaseReference.CompletionListener() {
                                             @Override
                                             public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference refer) {
-                                                refMain.child(keys).removeValue();
+
+                                                ref.child("CONCURRENT MESSAGE").child(mAuth.getUid()).child(userKey).child(keys).removeValue();
+                                                refMain.child(finalKeys).removeValue();
                                                 mList.remove(onLongClickPosition);
                                                 adapter.notifyDataSetChanged();
-                                                asyncRemoveMessage(keys);
-                                                ref.child("UNSENT MESSAGE KEY").child(userKey).child(mAuth.getUid()).child(keys).setValue("ADDED");
+
+                                                AsyncTask.execute(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        try {
+                                                            MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
+                                                            database.dao().deleteTuple(finalKeys);
+                                                        }
+                                                        catch (Exception e){
+
+                                                        }
+                                                        }
+                                                });
+
+                                                ref.child("UNSENT MESSAGE KEY").child(userKey).child(mAuth.getUid()).child(finalKeys).setValue("ADDED");
 
                                                 Log.e(TAG, "onComplete: " + mList.size() + " " + onLongClickPosition);
 
@@ -263,14 +331,64 @@ public class ChatListActivity extends AppCompatActivity {
                                         });
                                     }
                                     if(item.getItemId() == R.id.remove_local_message){
-                                        asyncRemoveMessage(keys);
+                                        //asyncRemoveMessage(keys, 1);
+                                        mList.remove(onLongClickPosition);
+                                        //asyncRemoveMessage(keys, 1);
+                                        try {
+                                            if (mList.size() == onLongClickPosition) {
+                                                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                            }
+                                        }
+                                        catch (Exception e) {
+                                            if (mList.size() == 0) {
+                                                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("");
+                                            }
+                                        }
+                                        adapter.notifyDataSetChanged();
+
+                                        AsyncTask.execute(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                try {
+                                                    MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
+                                                    database.dao().deleteLocal(keys);
+                                                }
+                                                catch (Exception e){
+
+                                                }
+                                            }
+                                        });
+
+                                    }
+
+                                    if(item.getItemId() == R.id.copy_local_message){
+                                        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getApplication().getSystemService(Context.CLIPBOARD_SERVICE);
+                                        android.content.ClipData clip = android.content.ClipData.newPlainText("Copied Text 1", mList.get(onLongClickPosition).get("MESSAGE").toString());
+                                        clipboard.setPrimaryClip(clip);
                                     }
                                     return true;
                                 }
                             });
                             popupMenu.show();
-                        //    alertDialog.show();
                         }
+                        else{
+                            PopupMenu menu = new PopupMenu(ChatListActivity.this, view);
+                            menu.getMenuInflater().inflate(R.menu.chat_copy_menu, menu.getMenu());
+
+                            menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                                @Override
+                                public boolean onMenuItemClick(MenuItem item) {
+                                    if(item.getItemId() == R.id.copy_local_other_message){
+                                        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getApplication().getSystemService(Context.CLIPBOARD_SERVICE);
+                                        android.content.ClipData clip = android.content.ClipData.newPlainText("Copied Text 2", mList.get(onLongClickPosition).get("MESSAGE").toString());
+                                        clipboard.setPrimaryClip(clip);
+                                    }
+                                    return true;
+                                }
+                            });
+                            menu.show();
+                        }
+
                     } catch (Exception e) {
 
                     }
@@ -474,6 +592,7 @@ public class ChatListActivity extends AppCompatActivity {
                 ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(temp.get("MESSAGE").toString());
                 ref.child("UNREAD MESSAGE").child(databaseReference.getKey()).setValue(temp);
                 temp.put("KEY", databaseReference.getKey());
+                ref.child("CONCURRENT MESSAGE").child(mAuth.getUid()).child(userKey).child(databaseReference.getKey()).setValue("KEY");
                 mList.remove(mList.size()-1);
                 mList.add(temp);
                 adapter.notifyDataSetChanged();
@@ -539,7 +658,7 @@ public class ChatListActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        ref.child("ONLINE").child(FirebaseAuth.getInstance().getUid()).setValue("OFFLINE");
+        //ref.child("ONLINE").child(FirebaseAuth.getInstance().getUid()).setValue("OFFLINE");
         mCount = 0;
     }
 
@@ -554,7 +673,7 @@ public class ChatListActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        ref.child("ONLINE").child(FirebaseAuth.getInstance().getUid()).setValue("ONLINE");
+       // ref.child("ONLINE").child(FirebaseAuth.getInstance().getUid()).setValue("ONLINE");
         countRef.child(userKey).child(mAuth.getUid()).setValue("0");
         database.getReference().child("TOKENS").child(mAuth.getUid()).setValue(FirebaseInstanceId.getInstance().getToken());
 
@@ -571,7 +690,7 @@ public class ChatListActivity extends AppCompatActivity {
                 mList.clear();
                 for(int i = 0; i<messageData.size(); i++) {
                     MessageData data = messageData.get(i);
-                    if (data.mFrom.contains(userKey) || data.mTo.contains(userKey)) {
+                    if (data.mFrom.contains(userKey) || data.mTo.contains(userKey) && data.mMessage != null) {
                         HashMap map = new HashMap();
                         Log.e(TAG, "run: " + data.mMessage);
                         Log.e(TAG, "run: " + data.mMessage);
@@ -591,23 +710,23 @@ public class ChatListActivity extends AppCompatActivity {
                     }
                 }
 
-                Collections.sort(mList, new Comparator<HashMap>() {
-                    @Override
-                    public int compare(HashMap o1, HashMap o2) {
-                        return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
-                    }
-                });
-
                 Handler handler = new Handler(Looper.getMainLooper());
                 handler.post(new Runnable() {
                     public void run() {
                         // UI code goes here
+                        adapter.notifyDataSetChanged();
+                        Collections.sort(mList, new Comparator<HashMap>() {
+                            @Override
+                            public int compare(HashMap o1, HashMap o2) {
+                                return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
+                            }
+                        });
                         Log.e(TAG, "run: Adapter called");
-                        adapter = new ChatAdapter(ChatListActivity.this, mList);
                         listView = findViewById(R.id.chat_list_view);
                         listView.setAdapter(adapter);
 
-                        adapter.notifyDataSetChanged();
+                        //adapter.notifyDataSetChanged();
+                       // concurrentMessage();
 
                         eventListener = new ValueEventListener() {
                             @Override
@@ -621,12 +740,14 @@ public class ChatListActivity extends AppCompatActivity {
                                             if (snap.child("TO").getValue().toString().contains(mAuth.getUid()) &&
                                                     snap.child("FROM").getValue().toString().contains(userKey)) {
                                                 HashMap map = new HashMap();
+                                                map.put("KEY", snap.getKey());
                                                 map.put("NAME", userName);
                                                 map.put("MESSAGE", snap.child("MESSAGE").getValue());
                                                 map.put("FROM", snap.child("FROM").getValue());
                                                 map.put("TO", snap.child("TO").getValue());
                                                 map.put("TIME", snap.child("TIME").getValue().toString());
                                                 mList.add(map);
+
                                                 adapter.notifyDataSetChanged();
                                                 ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size()-1).get("MESSAGE").toString());
                                                 Log.e(TAG, "onDataChange: Senders Message" + snap.getKey());
@@ -640,6 +761,7 @@ public class ChatListActivity extends AppCompatActivity {
                                         Log.e(TAG, "onDataChange: " + e.toString() );
                                     }
                                     adapter.notifyDataSetChanged();
+                                    concurrentMessage();
                                 }
                             }
 
@@ -657,7 +779,6 @@ public class ChatListActivity extends AppCompatActivity {
         };
         thread.start();
     }
-
     void AsyncMessage(final HashMap map, final String key){
         Thread thread = new Thread(){
             @Override
@@ -677,7 +798,6 @@ public class ChatListActivity extends AppCompatActivity {
         };
         thread.start();
     }
-
     public void writeNotification(String Message, String Name) {
         if (token != null) {
             content = new NotificationContent();
@@ -721,33 +841,6 @@ public class ChatListActivity extends AppCompatActivity {
         }
     }
 
-    void asyncRemoveMessage(final String key){
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
-                database.dao().deleteTuple(key);
-            }
-        });
-    }
-
-    void asyncRemoveMessage(final ArrayList<String> key){
-        final int[] flag = {0};
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
-                for(String keys : key){
-                    database.dao().deleteTuple(keys);
-                    flag[0]++;
-                }
-                if(flag[0]!=0){{
-                 AsyncUpdater();
-                }}
-            }
-        });
-    }
-
     void AsyncUpdater() {
         Thread thread = new Thread() {
             @Override
@@ -759,7 +852,7 @@ public class ChatListActivity extends AppCompatActivity {
                 mList.clear();
                 for (int i = 0; i < messageData.size(); i++) {
                     MessageData data = messageData.get(i);
-                    if (data.mFrom.contains(userKey) || data.mTo.contains(userKey)) {
+                    if (data.mFrom.contains(userKey) || data.mTo.contains(userKey) && data.mMessage != null && data.mMessage != null) {
                         HashMap map = new HashMap();
                         Log.e(TAG, "run: " + data.mMessage);
                         Log.e(TAG, "run: " + data.mMessage);
@@ -779,16 +872,18 @@ public class ChatListActivity extends AppCompatActivity {
                     }
                 }
 
-                Collections.sort(mList, new Comparator<HashMap>() {
-                    @Override
-                    public int compare(HashMap o1, HashMap o2) {
-                        return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
-                    }
-                });
-
                 Handler handler = new Handler(Looper.getMainLooper());
                 handler.post(new Runnable() {
                     public void run() {
+                        adapter.notifyDataSetChanged();
+                        if(mList!=null)
+                            Collections.sort(mList, new Comparator<HashMap>() {
+                                @Override
+                                public int compare(HashMap o1, HashMap o2) {
+                                    return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
+                                }
+                            });
+
                         // UI code goes here
                         Log.e(TAG, "run: Adapter called");
                         adapter.notifyDataSetChanged();
@@ -798,6 +893,123 @@ public class ChatListActivity extends AppCompatActivity {
         };
         thread.start();
     }
+    void concurrentMessage(){
+        ref.child("CONCURRENT MESSAGE").child(mAuth.getUid()).child(userKey).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for(DataSnapshot snap : snapshot.getChildren()) {
+                    try {
+                        final String key = snap.getKey();
+                        Log.e(TAG, "onDataChange All keys: " + key);
 
+                        if (!CheckListForExistence(key)) {
+                            AsyncTask.execute(new Runnable() {
+                                @Override
+                                public void run() {
+                                    MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
+                                    Log.e(TAG, "run: Key result" + database.dao().checkForKey(key) + " for key:" + key);
+                                    if (database.dao().checkForKey(key) == 0) {
+                                        ref.child("NEW MESSAGE").child(key).addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(@NonNull final DataSnapshot snapshot) {
+                                                AsyncTask.execute(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        try {
+                                                            MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
+                                                            MessageData dataObject = new MessageData(key,
+                                                                    snapshot.child("FROM").getValue().toString(),
+                                                                    snapshot.child("TO").getValue().toString(),
+                                                                    snapshot.child("TIME").getValue().toString(),
+                                                                    snapshot.child("MESSAGE").getValue().toString());
+                                                            database.dao().InsertMessage(dataObject);
+                                                            Log.e(TAG, "run: Added to DB");
+                                                        } catch (Exception e) {
+                                                            Log.e(TAG, "onDataChange: Database error" + e.toString());
+                                                        }
+                                                    }
+                                                });
+                                                if (!CheckListForExistence(key)) {
+                                                final HashMap map = new HashMap();
+                                                try {
+                                                    map.put("NAME", USER_NAME);
+                                                    map.put("KEY", key);
+                                                    map.put("FROM", snapshot.child("FROM").getValue().toString());
+                                                    map.put("TO", snapshot.child("TO").getValue().toString());
+                                                    map.put("TIME", snapshot.child("TIME").getValue().toString());
+                                                    map.put("MESSAGE", snapshot.child("MESSAGE").getValue().toString());
+
+                                                    Handler handler = new Handler(Looper.getMainLooper());
+                                                    handler.post(new Runnable() {
+                                                        @Override
+                                                        public void run() {
+                                                            if(!CheckListForExistence(key)) {
+                                                                mList.add(map);
+                                                                Collections.sort(mList, new Comparator<HashMap>() {
+                                                                    @Override
+                                                                    public int compare(HashMap o1, HashMap o2) {
+                                                                        return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
+                                                                    }
+                                                                });
+                                                                adapter.notifyDataSetChanged();
+                                                            }
+                                                        }
+
+                                                    });
+
+                                                } catch (Exception e) {
+                                                    Log.e(TAG, "onDataChange: ConData error " + e.toString());
+                                                }
+                                                }
+
+                                            }
+
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError error) {
+
+                                            }
+                                        });
+                                        Log.e(TAG, "run: Keys Filtered out: " + key);
+                                    }
+                                }
+                            });
+                        }
+
+                    }
+                    catch (Exception e){
+
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+    }
+
+    boolean CheckListForExistence(String key){
+
+        for(HashMap map : mList){
+            if(map.get("KEY").toString().contains(key)){
+                Log.e(TAG, "CheckListForExistence: key" + key );
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int GetListPositionForKey(String key){
+        int i = 0;
+        for(HashMap map : mList){
+            if(map.get("KEY").toString().contains(key)){
+                return i;
+            }
+            i++;
+        }
+        return -1;
+    }
 }
 

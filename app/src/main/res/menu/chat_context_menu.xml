@@ -3,5 +3,5 @@
 
     <item android:id="@+id/unsend_message_menu" android:title="Unsend Message"/>
     <item android:id="@+id/remove_local_message" android:title="Remove Message "/>
-
+    <item android:id="@+id/copy_local_message" android:title="Copy Message "/>
 </menu>

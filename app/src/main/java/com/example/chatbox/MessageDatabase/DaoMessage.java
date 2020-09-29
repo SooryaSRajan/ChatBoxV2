@@ -18,7 +18,13 @@ public interface DaoMessage {
     @Query("DELETE FROM MessageTable")
     void deleteAll();
 
-    @Query("DELETE FROM MessageTable WHERE `key` ==:key")
+    @Query("DELETE FROM  MessageTable  WHERE `key` ==:key")
     void deleteTuple(String key);
+
+    @Query("UPDATE MessageTable SET `MESSAGE` = null  WHERE `key` ==:key")
+    void deleteLocal(String key);
+
+    @Query("SELECT COUNT(*) FROM MessageTable WHERE `key` ==:key")
+    Integer checkForKey(String key);
 
 }

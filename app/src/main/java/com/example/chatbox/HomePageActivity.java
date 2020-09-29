@@ -72,6 +72,7 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         progressBar = findViewById(R.id.progress_circular_bar);
 
         fragment = new UserListViewFragment(this, getSupportFragmentManager());
+
         mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("ONLINE");
         mRef.child("ONLINE").child(firebaseUser.getUid()).onDisconnect().setValue("OFFLINE");
 
@@ -257,13 +258,13 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
     @Override
     protected void onPause() {
         super.onPause();
-        mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("OFFLINE");
+        //mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("OFFLINE");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("ONLINE");
+        //mRef.child("ONLINE").child(firebaseUser.getUid()).setValue("ONLINE");
 
     }
 }

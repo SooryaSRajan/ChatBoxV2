@@ -54,6 +54,7 @@ public class ChatAdapter extends BaseAdapter {
 
         final HashMap map = chatList.get(position);
 
+
         LayoutInflater inflater = activity.getLayoutInflater();
         if(map.get("FROM").toString().contains(mAuth.getUid()))
             convertView = inflater.inflate(R.layout.sender, null);
