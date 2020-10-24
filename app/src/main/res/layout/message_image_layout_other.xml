@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.cardview.widget.CardView
+        android:layout_margin="15dp"
+        app:cardElevation="25dp"
+        app:cardBackgroundColor="@color/colorPrimary"
+        app:cardCornerRadius="10dp"
+        android:layout_width="270dp"
+        android:layout_height="270dp">
+
+        <ImageView
+            android:id="@+id/message_image_view"
+            android:layout_margin="4dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Message Image View"/>
+
+    </androidx.cardview.widget.CardView>
+
+
+</RelativeLayout>

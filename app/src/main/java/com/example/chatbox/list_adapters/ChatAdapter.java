@@ -20,12 +20,14 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Set;
 
 import static androidx.constraintlayout.motion.utils.Oscillator.TAG;
 
 public class ChatAdapter extends BaseAdapter {
 
     private ArrayList<HashMap> chatList;
+    private Set<String> mKeySet;
     private Activity activity;
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
