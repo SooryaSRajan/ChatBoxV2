@@ -4,6 +4,7 @@
     <color name="colorPrimaryBox">#5912BC</color>
     <color name="colorPrimaryDark">#150045</color>
     <color name="colorAccent">#03DAC5</color>
+    <color name="colorListSelect">#A803DAC5</color>
     <color name="colorBlack">#232323</color>
     <color name="colorPurple">#1B0E33</color>
     <color name="colorWhite">#ffff</color>

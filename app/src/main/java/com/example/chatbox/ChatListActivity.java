@@ -5,17 +5,22 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -24,6 +29,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
@@ -35,6 +41,8 @@ import com.example.chatbox.FCMNotifications.RetrofitClient;
 import com.example.chatbox.MessageDatabase.MessageData;
 import com.example.chatbox.MessageDatabase.MessageDatabase;
 import com.example.chatbox.list_adapters.ChatAdapter;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -43,10 +51,16 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -59,12 +73,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+
+import static androidx.constraintlayout.motion.utils.Oscillator.TAG;
 import static com.example.chatbox.Constants.USER_NAME;
 
 public class ChatListActivity extends AppCompatActivity {
@@ -100,7 +117,8 @@ public class ChatListActivity extends AppCompatActivity {
     int onLongClickPosition = 0;
     String appToken;
     ArrayList<String> concurrentMessageKeys = new ArrayList<>();
-
+    FirebaseStorage storage;
+    StorageReference mDataRef;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,6 +126,9 @@ public class ChatListActivity extends AppCompatActivity {
 
         appToken = FirebaseInstanceId.getInstance().getToken();
         ref.child("CONCURRENT USERS").child(mAuth.getUid()).child(appToken).setValue("TOKEN");
+
+         storage = FirebaseStorage.getInstance();
+         mDataRef = storage.getReferenceFromUrl("gs://chat-box-v2.appspot.com");
 
         final Intent intent = getIntent();
         ref.child("ONLINE").child(mAuth.getUid()).setValue("ONLINE");
@@ -153,8 +174,9 @@ public class ChatListActivity extends AppCompatActivity {
         addImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent i = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(i, 0);
+                Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                intent.setType("image/*");
+                startActivityForResult(intent, 100);
             }
         });
 
@@ -172,6 +194,56 @@ public class ChatListActivity extends AppCompatActivity {
                 alertDialog.dismiss();
             }
         });
+        final Handler handler = new Handler(Looper.getMainLooper());
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
+                Log.e(TAG, "onItemClick: List clicked");
+                if (mList.get(position).get("TYPE").toString().contains("IMAGE")) {
+                    Log.e(TAG, "onItemClick: Image list");
+                    AsyncTask.execute(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            Log.e(TAG, "onItemClick: thread started");
+                            FileInputStream fileInputStream;
+                            Bitmap bitmap;
+
+                            try {
+                                fileInputStream = ChatListActivity.this.openFileInput(mList.get(position).get("MESSAGE").toString());
+                                bitmap = BitmapFactory.decodeStream(fileInputStream);
+                                final Bitmap finalBitmap = bitmap;
+
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            Log.e(TAG, "onItemClick: Inside post");
+                                            AlertDialog.Builder builder = new AlertDialog.Builder(ChatListActivity.this);
+                                            final View builderView = getLayoutInflater().inflate(R.layout.message_image_layout_enlarged, null);
+                                            ImageView imageView = builderView.findViewById(R.id.message_image_view);
+                                            imageView.setImageBitmap(finalBitmap);
+                                            builder.setView(builderView);
+                                            final android.app.AlertDialog alertDialog = builder.create();
+                                            alertDialog.show();
+
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                });
+
+                                Log.e(TAG, "GetImageBitmap: Bitmap");
+                            } catch (FileNotFoundException e) {
+                                e.printStackTrace();
+                                Log.e(TAG, "run: File not found" );
+                            }
+                        }
+                    });
+                }
+            }
+        });
+
         listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
@@ -223,8 +295,14 @@ public class ChatListActivity extends AppCompatActivity {
 
                                             try {
                                                 if (mList.size() == onLongClickPosition) {
-                                                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
-                                                    ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                                    if (mList.get(onLongClickPosition - 1).get("TYPE").toString().contains("MESSAGE")) {
+                                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                                        ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                                    }
+                                                    else if(mList.get(onLongClickPosition - 1).get("TYPE").toString().contains("IMAGE")){
+                                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("you sent an image");
+                                                        ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("sent you an image");
+                                                    }
                                                 }
                                             } catch (Exception e) {
                                                 if (mList.size() == 0) {
@@ -241,7 +319,12 @@ public class ChatListActivity extends AppCompatActivity {
                                     mKeyList.remove(keys);
                                     try {
                                         if (mList.size() == onLongClickPosition) {
-                                            ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                            if (mList.get(onLongClickPosition - 1).get("TYPE").toString().contains("MESSAGE")) {
+                                                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
+                                            }
+                                            else if(mList.get(onLongClickPosition - 1).get("TYPE").toString().contains("IMAGE")){
+                                                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("you sent an image");
+                                            }
                                         }
                                     } catch (Exception e) {
                                         if (mList.size() == 0) {
@@ -294,7 +377,7 @@ public class ChatListActivity extends AppCompatActivity {
                 } catch (Exception e) {
 
                 }
-                return false;
+                return true;
             }
         });
 
@@ -367,7 +450,7 @@ public class ChatListActivity extends AppCompatActivity {
             public void onClick(View v) {
                 mMessage = chatText.getText().toString();
                 if (!mMessage.isEmpty()) {
-                    messageMap(mMessage);
+                    messageMap(mMessage, 0);
                     chatText.setText("");
                 }
             }
@@ -385,7 +468,7 @@ public class ChatListActivity extends AppCompatActivity {
         });
     }
 
-    void messageMap(String Message) {
+    HashMap messageMap(String Message, int flag) {
         HashMap map = new HashMap();
         Intent intent = getIntent();
         map.put("NAME", USER_NAME);
@@ -393,10 +476,19 @@ public class ChatListActivity extends AppCompatActivity {
         map.put("FROM", mAuth.getUid());
         map.put("TO", intent.getStringExtra("KEY"));
         map.put("TIME", getTime());
-        map.put("TYPE", "MESSAGE");
 
-        writeToFirebase(map, intent.getStringExtra("KEY"));
-        writeNotification(Message, USER_NAME);
+
+        if(flag == 0){
+            map.put("TYPE", "MESSAGE");
+            writeNotification(Message, USER_NAME);
+        }
+
+        if(flag == 1){
+            map.put("TYPE", "IMAGE");
+            writeNotification("Has sent you an image", USER_NAME);
+        }
+        writeToFirebase(map, intent.getStringExtra("KEY"), flag);
+        return map;
     }
 
     @Override
@@ -426,7 +518,8 @@ public class ChatListActivity extends AppCompatActivity {
         return dateFormat.format(currentTime);
     }
 
-    public void writeToFirebase(final HashMap temp, final String ID) {
+    public void writeToFirebase(final HashMap temp, final String ID, final int flag) {
+        if(flag == 0)
         mList.add(temp);
         adapter.notifyDataSetChanged();
         ref.child("NEW MESSAGE").push().setValue(temp, new DatabaseReference.CompletionListener() {
@@ -436,25 +529,33 @@ public class ChatListActivity extends AppCompatActivity {
                 ref.child("PROFILE ORDER").child(mAuth.getUid()).child(ID).setValue(getDateTime());
                 ref.child("PROFILE ORDER").child(ID).child(mAuth.getUid()).setValue(getDateTime());
                 ref.child("UNREAD COUNT").child(mAuth.getUid()).child(ID).setValue(Integer.toString(++mCount));
-                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(temp.get("MESSAGE").toString());
-                ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(temp.get("MESSAGE").toString());
+                mKeyList.add(databaseReference.getKey());
+                if(flag == 0){
+                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(temp.get("MESSAGE").toString());
+                    ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(temp.get("MESSAGE").toString());
+                }
+
+                else if(flag == 1){
+                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("you sent an image");
+                    ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("sent you an image");
+                }
                 ref.child("UNREAD MESSAGE").child(databaseReference.getKey()).setValue(temp);
                 temp.put("KEY", databaseReference.getKey());
-                ref.child("CONCURRENT MESSAGE").child(mAuth.getUid()).child(userKey).child(databaseReference.getKey()).setValue("KEY");
                 AsyncTask.execute(new Runnable() {
                     @Override
                     public void run() {
-                        for(String keys : tokenList)
-                        ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(keys).child(userKey).child(databaseReference.getKey()).setValue("CONCURRENT KEY");
+                        for (String keys : tokenList)
+                            ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(keys).child(userKey).child(databaseReference.getKey()).setValue("CONCURRENT KEY");
                     }
                 });
-                mList.remove(mList.size() - 1);
-                mList.add(temp);
+                if(flag == 0){
+                    mList.remove(mList.size() - 1);
+                    mList.add(temp);
+                    adapter.notifyDataSetChanged();
+                }
                 mKeyList.add(databaseReference.getKey());
-                adapter.notifyDataSetChanged();
                 AsyncMessage(temp, databaseReference.getKey());
             }
-
         });
     }
 
@@ -485,31 +586,57 @@ public class ChatListActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 0 && resultCode == RESULT_OK && null != data) {
-            Uri selectedImage = data.getData();
-            String[] filePathColumn = {MediaStore.Images.Media.DATA};
-            Cursor cursor = getContentResolver().query(selectedImage, filePathColumn, null, null, null);
-            cursor.moveToFirst();
-            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-            String picturePath = cursor.getString(columnIndex);
-            cursor.close();
-            Bitmap bitmap = BitmapFactory.decodeFile(picturePath);
-            uploadFile(bitmap);
+        if(requestCode == 100){
+            if(resultCode == RESULT_OK){
+                Uri image = data.getData();
+                try {
+                    Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), image);
+                    uploadFile(bitmap);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
         }
     }
 
-    private void uploadFile(Bitmap bitmap) {
-        FirebaseStorage storage = FirebaseStorage.getInstance();
-        StorageReference storageRef = storage.getReference();
+    private void uploadFile(final Bitmap bitmap) {
+        try {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 1, stream);
+            final byte[] byteArray = stream.toByteArray();
+            final String name = mAuth.getUid() + getDateTime() + (new Random().nextInt());
+            saveImage(ChatListActivity.this, bitmap, name);
+            mList.add(messageMap(name, 1));
+            adapter.notifyDataSetChanged();
+            final StorageReference ref = storage.getReference().child("images/message/" + name);
+            ref.putBytes(byteArray)
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            //AsyncAddImageToDatabase(byteArray, name, messageMap(name, 1));
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
 
-        ByteArrayOutputStream ByteStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 25, ByteStream);
-        byte[] data = ByteStream.toByteArray();
+                        }
+                    })
+                    .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
 
-        //storageRef.putBytes()
-    }
+                        }
+                    });
+        }
+
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+   }
 
     @Override
     protected void onPause() {
@@ -570,7 +697,7 @@ public class ChatListActivity extends AppCompatActivity {
                         map.put("TIME", data.mTime);
                         map.put("MESSAGE", data.mMessage);
                         map.put("KEY", data.key);
-                        //map.put("TYPE", "MESSAGE");
+                        map.put("TYPE", data.type);
                         mList.add(map);
                         mKeyList.add(data.key);
 
@@ -609,7 +736,7 @@ public class ChatListActivity extends AppCompatActivity {
                 super.run();
                 try {
                     MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
-                    MessageData dataObject = new MessageData(key, map.get("FROM").toString(), map.get("TO").toString(), map.get("TIME").toString(), map.get("MESSAGE").toString());
+                    MessageData dataObject = new MessageData(key, map.get("FROM").toString(), map.get("TO").toString(), map.get("TIME").toString(), map.get("MESSAGE").toString(), map.get("TYPE").toString());
                     database.dao().InsertMessage(dataObject);
                     Log.e(TAG, "run: Message Added");
                 } catch (Exception e) {
@@ -838,7 +965,7 @@ public class ChatListActivity extends AppCompatActivity {
                 if (snapshot.exists()) {
                     try {
                         removeKey.clear();
-                        for (DataSnapshot snap : snapshot.getChildren()) {
+                        for (final DataSnapshot snap : snapshot.getChildren()) {
                             if (snap.child("TO").getValue().toString().contains(mAuth.getUid()) &&
                                     snap.child("FROM").getValue().toString().contains(userKey)) {
                                 if (!mKeyList.contains(snap.getKey())) {
@@ -849,11 +976,33 @@ public class ChatListActivity extends AppCompatActivity {
                                     map.put("FROM", snap.child("FROM").getValue());
                                     map.put("TO", snap.child("TO").getValue());
                                     map.put("TIME", snap.child("TIME").getValue().toString());
+                                    map.put("TYPE", snap.child("TYPE").getValue().toString());
                                     mList.add(map);
                                     mKeyList.add(snap.getKey());
+
+                                    Collections.sort(mList, new Comparator<HashMap>() {
+                                        @Override
+                                        public int compare(HashMap o1, HashMap o2) {
+                                            return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
+                                        }
+                                    });
+
+                                    AsyncTask.execute(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            for (String keys : tokenList)
+                                                ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(keys).child(userKey).child(snap.getKey()).setValue("CONCURRENT KEY");
+                                        }
+                                    });
+
                                     adapter.notifyDataSetChanged();
 
-                                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size() - 1).get("MESSAGE").toString());
+                                    if(map.get("TYPE").toString().contains("MESSAGE"))
+                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size() - 1).get("MESSAGE").toString());
+
+                                    else if(map.get("TYPE").toString().contains("IMAGE"))
+                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("sent you an image");
+
                                     Log.e(TAG, "onDataChange: Senders Message" + snap.getKey());
                                     AsyncMessage(map, snap.getKey());
                                     removeKey.add(snap.getKey());
@@ -922,8 +1071,10 @@ public class ChatListActivity extends AppCompatActivity {
                 map.put("TO", snapshot.child("TO").getValue().toString());
                 map.put("TIME", snapshot.child("TIME").getValue().toString());
                 map.put("MESSAGE", snapshot.child("MESSAGE").getValue().toString());
+                map.put("TYPE", snapshot.child("TYPE").getValue().toString());
                 mList.add(map);
                 mKeyList.add(concurrentFilterKey);
+
                 Collections.sort(mList, new Comparator<HashMap>() {
                     @Override
                     public int compare(HashMap o1, HashMap o2) {
@@ -943,16 +1094,9 @@ public class ChatListActivity extends AppCompatActivity {
                                     snapshot.child("FROM").getValue().toString(),
                                     snapshot.child("TO").getValue().toString(),
                                     snapshot.child("TIME").getValue().toString(),
-                                    snapshot.child("MESSAGE").getValue().toString());
+                                    snapshot.child("MESSAGE").getValue().toString(),
+                                    snapshot.child("TYPE").getValue().toString());
                             database.dao().InsertMessage(dataObject);
-                            Handler handler = new Handler(Looper.getMainLooper());
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Log.e(TAG, "run:");
-                                }
-                            });
-
                             Log.e(TAG, "run: Added to DB");
                         } catch (Exception e) {
                             Log.e(TAG, "onDataChange: Database error" + e.toString());
@@ -974,13 +1118,28 @@ public class ChatListActivity extends AppCompatActivity {
             public void run() {
                 for(String mKey : concurrentMessageKeys){
                     concurrentFilterKey = mKey;
-                    ref.child("NEW MESSAGE").child(mKey).addListenerForSingleValueEvent(ConcurrentMessageReceiverListener);
+                    if(!mKeyList.contains(mKey)) {
+                        ref.child("NEW MESSAGE").child(mKey).addListenerForSingleValueEvent(ConcurrentMessageReceiverListener);
+                    }
                     ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(appToken).child(userKey).child(mKey).removeValue();
                 }
 
             }
         });
+    }
+
+    void saveImage(Context context, Bitmap bitmap, String name){
+        try {
+            FileOutputStream fileOutputStream = context.openFileOutput(name, Context.MODE_PRIVATE);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fileOutputStream);
+            fileOutputStream.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
+
 }
 

@@ -127,7 +127,7 @@ int flag1, flag2;
                                                 snap.child("FROM").getValue().toString().contains(mAuth.getUid())) {
                                             AsyncMessage(snap.getKey(), snap.child("FROM").getValue().toString(),
                                                     snap.child("TO").getValue().toString(), snap.child("TIME").getValue().toString(),
-                                                    snap.child("MESSAGE").getValue().toString());
+                                                    snap.child("MESSAGE").getValue().toString(), snap.child("TYPE").getValue().toString());
                                             Log.e(TAG, "onMessageAdded! " );
                                         }
                                     }
@@ -168,13 +168,13 @@ int flag1, flag2;
         });
     }
 
-    void AsyncMessage(final String mKey, final String mFrom, final String mTo, final String mTime, final String mMessage){
+    void AsyncMessage(final String mKey, final String mFrom, final String mTo, final String mTime, final String mMessage, final  String mType){
         Thread thread = new Thread(){
             @Override
             public void run() {
                 super.run();
                 MessageDatabase database = MessageDatabase.getInstance(LoginActivity.this);
-                MessageData dataObject = new MessageData(mKey, mFrom, mTo, mTime, mMessage);
+                MessageData dataObject = new MessageData(mKey, mFrom, mTo, mTime, mMessage, mType);
                 database.dao().InsertMessage(dataObject);
                 Log.e(TAG, "run: Message Added" );
             }
