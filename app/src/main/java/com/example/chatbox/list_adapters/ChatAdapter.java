@@ -205,143 +205,12 @@ public class ChatAdapter extends BaseAdapter {
                                 holder.pauseButton.setVisibility(View.INVISIBLE);
                                 holder.progressBar.setVisibility(View.INVISIBLE);
 
-                                if (position != recorderButtonPressedPosition) {
-                                    holder.playButton.setVisibility(View.VISIBLE);
-                                    holder.pauseButton.setVisibility(View.INVISIBLE);
-                                }
-
-                                holder.playButton.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        mediaPlayer = new MediaPlayer();
-                                        holder.playButton.setVisibility(View.INVISIBLE);
-                                        holder.pauseButton.setVisibility(View.VISIBLE);
-
-                                        finalRecorderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() +
-                                                "/" + map.get("MESSAGE").toString().trim();
-                                        finalRecorderPath = finalRecorderPath.trim();
-
-                                        try {
-                                            if (mediaPlayer.isPlaying()) {
-                                                mediaPlayer.release();
-                                            }
-                                        } catch (Exception e) {
-                                            Log.e(TAG, "onClick: " + e.toString());
-                                        }
-
-
-                                        try {
-                                            mediaPlayer = new MediaPlayer();
-                                            mediaPlayer.setDataSource(finalRecorderPath);
-                                            mediaPlayer.prepare();
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                            Log.e(TAG, "Media player error: " + e.toString());
-
-                                        }
-
-                                        if (recorderButtonPressedPosition != -1 && recorderButtonPressedPosition != position) {
-                                            ChatListActivity.listView.getChildAt(recorderButtonPressedPosition
-                                                    - ChatListActivity.listView.getFirstVisiblePosition()).findViewById(R.id.list_view_recording_play).setVisibility(View.VISIBLE);
-                                            ChatListActivity.listView.getChildAt(recorderButtonPressedPosition
-                                                    - ChatListActivity.listView.getFirstVisiblePosition()).findViewById(R.id.list_view_recording_pause).setVisibility(View.INVISIBLE);
-                                        }
-
-
-                                        recorderButtonPressedPosition = position;
-
-                                        final SeekBar seekBar = ChatListActivity.listView.getChildAt(position
-                                                - ChatListActivity.listView.getFirstVisiblePosition()).findViewById(R.id.list_recording_progress_bar);
-                                        seekBar.setMax(mediaPlayer.getDuration());
-
-                                        mediaPlayer.start();
-
-                                        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                                            @Override
-                                            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                                                if (mediaPlayer != null && fromUser)
-                                                    mediaPlayer.seekTo(progress);
-
-                                            }
-
-                                            @Override
-                                            public void onStartTrackingTouch(SeekBar seekBar) {
-
-                                            }
-
-                                            @Override
-                                            public void onStopTrackingTouch(SeekBar seekBar) {
-
-                                            }
-                                        });
-
-                                        final int[] currentPosition = {0};
-
-                                        AsyncTask.execute(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                while (true) {
-                                                    try {
-                                                        currentPosition[0] = mediaPlayer.getCurrentPosition();
-                                                    } catch (IllegalStateException e) {
-                                                        Log.e(TAG, "run: " + e.toString());
-                                                        break;
-                                                    }
-                                                    if (mediaPlayer == null)
-                                                        break;
-                                                    seekBar.setProgress(currentPosition[0]);
-                                                }
-                                            }
-                                        });
-
-
-                                        if (recordingFlag) {
-                                            mediaPlayer.seekTo(audioPosition);
-                                            recordingFlag = false;
-                                        }
-                                        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                                            @Override
-                                            public void onCompletion(MediaPlayer mp) {
-                                                mediaPlayer.release();
-                                                mediaPlayer = null;
-                                                holder.playButton.setVisibility(View.VISIBLE);
-                                                holder.pauseButton.setVisibility(View.INVISIBLE);
-                                                seekBar.setProgress(recorderButtonPressedPosition);
-                                                recorderButtonPressedPosition = -1;
-                                                seekBar.setProgress(0);
-
-                                            }
-                                        });
-                                    }
-
-                                });
-
-                                holder.pauseButton.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        holder.playButton.setVisibility(View.VISIBLE);
-                                        holder.pauseButton.setVisibility(View.INVISIBLE);
-                                        mediaPlayer.pause();
-                                        audioPosition = mediaPlayer.getCurrentPosition();
-                                        recordingFlag = true;
-                                    }
-                                });
 
                                 Log.e(TAG, "setRecording: Path " + finalRecorderPath);
 
                                 Log.e(TAG, "onClick: Playing");
-                                if (mediaPlayer != null) {
-                                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                                        @Override
-                                        public void onCompletion(MediaPlayer mp) {
-                                            mediaPlayer.stop();
-                                            audioPosition = 0;
-                                            recordingFlag = false;
-                                            mediaPlayer.release();
-                                            Log.e(TAG, "onCompletion: Completed playing audio");
-                                        }
-                                    });
-                                }
+
+                                voiceRecordingControls(holder, position, map.get("MESSAGE").toString());
 
                             } catch (FileNotFoundException e) {
                                 e.printStackTrace();
@@ -356,143 +225,7 @@ public class ChatAdapter extends BaseAdapter {
                 }
 
                 else {
-                    if (position != recorderButtonPressedPosition) {
-                        holder.playButton.setVisibility(View.VISIBLE);
-                        holder.pauseButton.setVisibility(View.INVISIBLE);
-                    }
-
-                    holder.playButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            mediaPlayer = new MediaPlayer();
-                            holder.playButton.setVisibility(View.INVISIBLE);
-                            holder.pauseButton.setVisibility(View.VISIBLE);
-
-                            finalRecorderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() +
-                                    "/" + map.get("MESSAGE").toString().trim();
-                            finalRecorderPath = finalRecorderPath.trim();
-
-                            try {
-                                if (mediaPlayer.isPlaying()) {
-                                    mediaPlayer.release();
-                                }
-                            } catch (Exception e) {
-                                Log.e(TAG, "onClick: " + e.toString());
-                            }
-
-
-                            try {
-                                mediaPlayer = new MediaPlayer();
-                                mediaPlayer.setDataSource(finalRecorderPath);
-                                mediaPlayer.prepare();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                Log.e(TAG, "Media player error: " + e.toString());
-
-                            }
-
-                            if (recorderButtonPressedPosition != -1 && recorderButtonPressedPosition != position) {
-                                ChatListActivity.listView.getChildAt(recorderButtonPressedPosition
-                                        - ChatListActivity.listView.getFirstVisiblePosition()).findViewById(R.id.list_view_recording_play).setVisibility(View.VISIBLE);
-                                ChatListActivity.listView.getChildAt(recorderButtonPressedPosition
-                                        - ChatListActivity.listView.getFirstVisiblePosition()).findViewById(R.id.list_view_recording_pause).setVisibility(View.INVISIBLE);
-                            }
-
-
-                            recorderButtonPressedPosition = position;
-
-                            final SeekBar seekBar = ChatListActivity.listView.getChildAt(position
-                                    - ChatListActivity.listView.getFirstVisiblePosition()).findViewById(R.id.list_recording_progress_bar);
-                            seekBar.setMax(mediaPlayer.getDuration());
-
-                            mediaPlayer.start();
-
-                            seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                                @Override
-                                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                                    if (mediaPlayer != null && fromUser)
-                                        mediaPlayer.seekTo(progress);
-
-                                }
-
-                                @Override
-                                public void onStartTrackingTouch(SeekBar seekBar) {
-
-                                }
-
-                                @Override
-                                public void onStopTrackingTouch(SeekBar seekBar) {
-
-                                }
-                            });
-
-                            final int[] currentPosition = {0};
-
-                            AsyncTask.execute(new Runnable() {
-                                @Override
-                                public void run() {
-                                    while (true) {
-                                        try {
-                                            currentPosition[0] = mediaPlayer.getCurrentPosition();
-                                        } catch (IllegalStateException e) {
-                                            Log.e(TAG, "run: " + e.toString());
-                                            break;
-                                        }
-                                        if (mediaPlayer == null)
-                                            break;
-                                        seekBar.setProgress(currentPosition[0]);
-                                    }
-                                }
-                            });
-
-
-                            if (recordingFlag) {
-                                mediaPlayer.seekTo(audioPosition);
-                                recordingFlag = false;
-                            }
-                            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                                @Override
-                                public void onCompletion(MediaPlayer mp) {
-                                    mediaPlayer.release();
-                                    mediaPlayer = null;
-                                    holder.playButton.setVisibility(View.VISIBLE);
-                                    holder.pauseButton.setVisibility(View.INVISIBLE);
-                                    seekBar.setProgress(recorderButtonPressedPosition);
-                                    recorderButtonPressedPosition = -1;
-                                    seekBar.setProgress(0);
-
-                                }
-                            });
-                        }
-
-                    });
-
-                    holder.pauseButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            holder.playButton.setVisibility(View.VISIBLE);
-                            holder.pauseButton.setVisibility(View.INVISIBLE);
-                            mediaPlayer.pause();
-                            audioPosition = mediaPlayer.getCurrentPosition();
-                            recordingFlag = true;
-                        }
-                    });
-
-                    Log.e(TAG, "setRecording: Path " + finalRecorderPath);
-
-                    Log.e(TAG, "onClick: Playing");
-                    if (mediaPlayer != null) {
-                        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                            @Override
-                            public void onCompletion(MediaPlayer mp) {
-                                mediaPlayer.stop();
-                                audioPosition = 0;
-                                recordingFlag = false;
-                                mediaPlayer.release();
-                                Log.e(TAG, "onCompletion: Completed playing audio");
-                            }
-                        });
-                    }
+                    voiceRecordingControls(holder, position, map.get("MESSAGE").toString());
                 }
 
             }
@@ -579,4 +312,147 @@ public class ChatAdapter extends BaseAdapter {
             }
         }
     }
+
+    void voiceRecordingControls(final ViewHolder holder, final int position, final String path){
+        if (position != recorderButtonPressedPosition) {
+            holder.playButton.setVisibility(View.VISIBLE);
+            holder.pauseButton.setVisibility(View.INVISIBLE);
+        }
+
+        holder.playButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mediaPlayer = new MediaPlayer();
+                holder.playButton.setVisibility(View.INVISIBLE);
+                holder.pauseButton.setVisibility(View.VISIBLE);
+
+                finalRecorderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() +
+                        "/" + path;
+                finalRecorderPath = finalRecorderPath.trim();
+
+                try {
+                    if (mediaPlayer.isPlaying()) {
+                        mediaPlayer.release();
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "onClick: " + e.toString());
+                }
+
+
+                try {
+                    mediaPlayer = new MediaPlayer();
+                    mediaPlayer.setDataSource(finalRecorderPath);
+                    mediaPlayer.prepare();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.e(TAG, "Media player error: " + e.toString());
+
+                }
+
+                if (recorderButtonPressedPosition != -1 && recorderButtonPressedPosition != position) {
+                    ChatListActivity.listView.getChildAt(recorderButtonPressedPosition
+                            - ChatListActivity.listView.getFirstVisiblePosition()).findViewById(R.id.list_view_recording_play).setVisibility(View.VISIBLE);
+                    ChatListActivity.listView.getChildAt(recorderButtonPressedPosition
+                            - ChatListActivity.listView.getFirstVisiblePosition()).findViewById(R.id.list_view_recording_pause).setVisibility(View.INVISIBLE);
+                }
+
+
+                recorderButtonPressedPosition = position;
+
+                final SeekBar seekBar = ChatListActivity.listView.getChildAt(position
+                        - ChatListActivity.listView.getFirstVisiblePosition()).findViewById(R.id.list_recording_progress_bar);
+                seekBar.setMax(mediaPlayer.getDuration());
+
+                mediaPlayer.start();
+
+                seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                        if (mediaPlayer != null && fromUser)
+                            mediaPlayer.seekTo(progress);
+
+                    }
+
+                    @Override
+                    public void onStartTrackingTouch(SeekBar seekBar) {
+
+                    }
+
+                    @Override
+                    public void onStopTrackingTouch(SeekBar seekBar) {
+
+                    }
+                });
+
+                final int[] currentPosition = {0};
+
+                AsyncTask.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        while (true) {
+                            try {
+                                currentPosition[0] = mediaPlayer.getCurrentPosition();
+                            } catch (IllegalStateException e) {
+                                Log.e(TAG, "run: " + e.toString());
+                                break;
+                            }
+                            if (mediaPlayer == null)
+                                break;
+                            seekBar.setProgress(currentPosition[0]);
+                        }
+                    }
+                });
+
+
+                if (recordingFlag) {
+                    mediaPlayer.seekTo(audioPosition);
+                    recordingFlag = false;
+                }
+                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+                        mediaPlayer.release();
+                        mediaPlayer = null;
+                        holder.playButton.setVisibility(View.VISIBLE);
+                        holder.pauseButton.setVisibility(View.INVISIBLE);
+                        seekBar.setProgress(recorderButtonPressedPosition);
+                        recorderButtonPressedPosition = -1;
+                        seekBar.setProgress(0);
+
+                    }
+                });
+            }
+
+        });
+
+        holder.pauseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                holder.playButton.setVisibility(View.VISIBLE);
+                holder.pauseButton.setVisibility(View.INVISIBLE);
+                mediaPlayer.pause();
+                audioPosition = mediaPlayer.getCurrentPosition();
+                recordingFlag = true;
+            }
+        });
+
+        Log.e(TAG, "setRecording: Path " + finalRecorderPath);
+
+        Log.e(TAG, "onClick: Playing");
+        if (mediaPlayer != null) {
+            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    mediaPlayer.stop();
+                    audioPosition = 0;
+                    recordingFlag = false;
+                    mediaPlayer.release();
+                    Log.e(TAG, "onCompletion: Completed playing audio");
+                }
+            });
+
+        }
+    }
 }
+
+
