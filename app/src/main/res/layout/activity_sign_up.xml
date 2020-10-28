@@ -8,6 +8,7 @@
     tools:context=".SignUpActivity">
 
     <TextView
+        android:fontFamily="sans-serif-condensed-medium"
         android:text="@string/sign_up"
         android:textSize="60sp"
         android:textColor="@color/colorWhite"
@@ -18,6 +19,7 @@
         android:layout_height="wrap_content"/>
 
     <TextView
+        android:fontFamily="sans-serif-condensed-medium"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@+id/user_name_sign_up"
@@ -39,11 +41,13 @@
 
 
     <EditText
+        android:drawableStart="@drawable/ic_baseline_person_24"
+        android:drawablePadding="10dp"
         android:textAllCaps="true"
         android:id="@+id/user_name_sign_up"
         android:layout_width="match_parent"
         android:inputType="textCapWords"
-        android:padding="10dp"
+        android:padding="15dp"
         android:textColorHint="@color/colorGrey"
         android:layout_height="wrap_content"
         android:layout_marginLeft="40dp"
@@ -64,10 +68,12 @@
         android:layout_height="wrap_content"/>
 
     <EditText
+        android:drawableStart="@drawable/ic_baseline_email_24"
+        android:drawablePadding="10dp"
         android:id="@+id/email_id"
         android:hint="Enter Email ID"
         android:inputType="textEmailAddress"
-        android:padding="10dp"
+        android:padding="15dp"
         android:textColorHint="@color/colorGrey"
         android:layout_centerInParent="true"
         android:layout_width="match_parent"
@@ -90,9 +96,11 @@
 
 
     <EditText
+        android:drawableStart="@drawable/ic_baseline_lock_24"
+        android:drawablePadding="10dp"
         android:id="@+id/password_create_one"
         android:layout_width="match_parent"
-        android:padding="10dp"
+        android:padding="15dp"
         android:textColorHint="@color/colorGrey"
         android:layout_height="wrap_content"
         android:layout_marginLeft="40dp"
@@ -116,8 +124,10 @@
 
 
     <EditText
+        android:drawableStart="@drawable/ic_baseline_lock_24"
+        android:drawablePadding="10dp"
         android:id="@+id/password_create_two"
-        android:padding="10dp"
+        android:padding="15dp"
         android:textColorHint="@color/colorGrey"
         android:hint="Enter Password Again..."
         android:layout_width="match_parent"
@@ -130,7 +140,7 @@
         android:layout_marginBottom="40dp"/>
 
     <Button
-        android:background="@color/colorPrimary"
+        android:background="@drawable/button_drawable_background"
         android:id="@+id/sign_up_create_button"
         android:padding="10dp"
         android:text="Sign Up"

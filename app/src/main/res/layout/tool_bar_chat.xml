@@ -9,7 +9,7 @@
         android:layout_height="?attr/actionBarSize"
         android:id="@+id/tool_bar_chat"
         app:titleTextColor="@color/colorWhite"
-        android:background="@color/colorPrimary">
+        android:background="@drawable/gradient_drawable">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -25,7 +25,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:background="@color/colorPrimary"
+                android:background="@color/colorTransparent"
                 android:gravity="center_vertical"
                 android:paddingLeft="16dp"
                 android:src="@drawable/ic_arrow_back_black_24dp" />

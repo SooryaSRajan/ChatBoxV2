@@ -56,7 +56,7 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
     FragmentThree fragmentThree;
     ArrayList<HashMap> mMapList = new ArrayList<>();
 
-    UserListViewFragment(){
+    public UserListViewFragment(){
         super();
     }
 
@@ -267,7 +267,6 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
             }
         };
         thread.start();
-
     }
 
 }

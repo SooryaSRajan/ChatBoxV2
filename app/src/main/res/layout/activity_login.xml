@@ -6,28 +6,51 @@
     android:background="@drawable/gradient_background"
     tools:context=".LoginSignUpActivity">
 
+    <RelativeLayout
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/login_sign_up_subtext"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+    <ImageView
+        android:id="@+id/logo"
+        android:src="@drawable/ic_launcher_foreground"
+        android:background="@drawable/button_drawable_background"
+        android:layout_width="80dp"
+        android:layout_height="80dp" />
+
     <TextView
+        android:layout_toRightOf="@+id/logo"
+        android:id="@+id/app_name"
+        android:textStyle="bold"
         android:text="@string/app_name"
         android:textSize="60sp"
         android:textColor="@color/colorWhite"
-        android:layout_above="@+id/logo_image"
         android:layout_centerHorizontal="true"
         android:layout_width="wrap_content"
-        android:layout_marginBottom="50dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginBottom="20dp"
         android:layout_height="wrap_content"/>
 
-    <ImageView
-        android:id="@+id/logo_image"
-        android:src="@drawable/ic_launcher_background"
+    </RelativeLayout>
+    <TextView
+        android:fontFamily="sans-serif-condensed-medium"
+        android:layout_marginBottom="20dp"
+        android:textAlignment="center"
+        android:layout_marginLeft="140dp"
+        android:textColor="@color/colorWhite"
+        android:text="Login or Signup into ChatBox to start messaging people"
+        android:id="@+id/login_sign_up_subtext"
         android:layout_centerInParent="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
     <Button
+        android:background="@drawable/button_drawable_background"
         android:id="@+id/login_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/logo_image"
+        android:layout_below="@+id/login_sign_up_subtext"
         android:layout_centerInParent="true"
         android:layout_marginLeft="40dp"
         android:layout_marginRight="40dp"
@@ -35,10 +58,10 @@
         android:layout_marginBottom="30dp"
         android:padding="14dp"
         android:text="@string/log_in"
-        android:textColor="@color/colorWhite"
-        android:backgroundTint="@color/colorPrimary"/>
+        android:textColor="@color/colorWhite"/>
 
     <Button
+        android:background="@drawable/button_drawable_background"
         android:id="@+id/sign_up_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -48,9 +71,16 @@
         android:layout_marginRight="40dp"
         android:padding="14dp"
         android:text="@string/sign_up"
+        android:textColor="@color/colorWhite"/>
+
+    <TextView
+        android:fontFamily="sans-serif-condensed-medium"
         android:textColor="@color/colorWhite"
-        android:backgroundTint="@color/colorPrimary"/>
-
-
+        android:text="By Soorya S Rajan"
+        android:layout_marginBottom="60dp"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
 
 </RelativeLayout>

@@ -55,7 +55,9 @@ public class FragmentThree extends Fragment {
     private int currentListPosition = 0;
     private ProfileListAdapter adapter;
 
+    public FragmentThree(){
 
+    }
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {

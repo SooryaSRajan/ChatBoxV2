@@ -4,34 +4,39 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
+import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
-import android.provider.OpenableColumns;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.PopupMenu;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.example.chatbox.FCMNotifications.APIInterface;
@@ -58,6 +63,7 @@ import com.google.firebase.storage.UploadTask;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -75,54 +81,292 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import static androidx.constraintlayout.motion.utils.Oscillator.TAG;
 import static com.example.chatbox.Constants.USER_NAME;
 
 public class ChatListActivity extends AppCompatActivity {
 
-    Toolbar toolbar;
-    List<MessageData> messageData = null;
-    ImageButton backButton;
+    private Toolbar toolbar;
+    private List<MessageData> messageData = null;
+    private ImageButton backButton;
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
     private DatabaseReference countRef = database.getReference().child("UNREAD COUNT"), ref = database.getReference(),
             ref2 = database.getReference(), onlineRef = database.getReference(), refMain = database.getReference().child("UNREAD MESSAGE"),
             refToken;
-    public ValueEventListener UnsentReceiverListener, UnsentSelfListener, TokenListener, ConcurrentTokensListener,
+    private ValueEventListener UnsentReceiverListener, UnsentSelfListener, TokenListener, ConcurrentTokensListener,
             CountListener, TypingListener, OnlineListener, MessageReceiverListener, ConcurrentMessageReceiverListener, ConcurrentUserNodeListener;
-    FirebaseAuth mAuth = FirebaseAuth.getInstance();
-    ListView listView;
-    ArrayList<HashMap> mList = new ArrayList<>();
-    Set<String> mKeyList = new HashSet<>();
-    ArrayList<String> tokenList = new ArrayList<>();
+    private FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    public static ListView listView;
+    private ArrayList<HashMap> mList = new ArrayList<>();
+    private Set<String> mKeyList = new HashSet<>();
+    private ArrayList<String> tokenList = new ArrayList<>();
     private static ChatAdapter adapter;
-    EditText chatText;
-    ImageButton mSend;
-    String mMessage;
-    String TAG = "ChatListActivity";
-    ArrayList<String> removeKey = new ArrayList<>();
-    String typingStatus;
-    TextView mTypingStatus, mOnlineStatus, mSeenStatus;
-    ImageButton addImage;
-    String userKey, userName, token, concurrentFilterKey;
-    int mCount = 0;
-    NotificationContent content;
-    NotificationBody notificationBody;
-    APIInterface apiInterface;
-    int onLongClickPosition = 0;
-    String appToken;
-    ArrayList<String> concurrentMessageKeys = new ArrayList<>();
-    FirebaseStorage storage;
-    StorageReference mDataRef;
+    private EditText chatText;
+    private ImageButton mSend;
+    private String mMessage;
+    private String TAG = "ChatListActivity";
+    private ArrayList<String> removeKey = new ArrayList<>();
+    private String typingStatus;
+    private TextView mTypingStatus, mOnlineStatus, mSeenStatus;
+    private ImageButton addImage, recorderButton, recorderBack, startRecording,
+            stopRecording, playRecording, pauseRecording;
+    private String userKey, userName, token, concurrentFilterKey;
+    private int mCount = 0;
+    private NotificationContent content;
+    private NotificationBody notificationBody;
+    private APIInterface apiInterface;
+    private int onLongClickPosition = 0;
+    private String appToken;
+    private ArrayList<String> concurrentMessageKeys = new ArrayList<>();
+    private FirebaseStorage storage;
+    private StorageReference mDataRef;
+    private RelativeLayout recorderDashboard;
+    boolean recorderButtonFlag = false;
+    private Button sendRecording;
+    private MediaRecorder mediaRecorder;
+    private MediaPlayer mediaPlayer;
+    private String finalRecorderPath = null, recordedFileName = null;
+    private int playPauseStateFlag = 0, recorderStateFlag = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat_list);
+
+        recorderDashboard = findViewById(R.id.recorder_dashboard);
+        recorderDashboard.setVisibility(View.GONE);
+
+        recorderButton = findViewById(R.id.recorder_button);
+        recorderBack = findViewById(R.id.exit_recorder);
+        startRecording = findViewById(R.id.start_recording);
+        stopRecording = findViewById(R.id.stop_recording);
+        sendRecording = findViewById(R.id.send_recording);
+        playRecording = findViewById(R.id.play_recording);
+        pauseRecording = findViewById(R.id.pause_recording);
+
+        stopRecording.setVisibility(View.GONE);
+        sendRecording.setVisibility(View.GONE);
+        playRecording.setVisibility(View.GONE);
+        pauseRecording.setVisibility(View.GONE);
+
+        recorderButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if(checkPermissionForRecorder()){
+                    if(!recorderButtonFlag) {
+                        addImage.setVisibility(View.GONE);
+                        chatText.setVisibility(View.GONE);
+                        recorderDashboard.setVisibility(View.VISIBLE);
+                        startRecording.setVisibility(View.VISIBLE);
+                        recorderButtonFlag = true;
+                    }
+                    else{
+                        addImage.setVisibility(View.VISIBLE);
+                        chatText.setVisibility(View.VISIBLE);
+                        recorderDashboard.setVisibility(View.GONE);
+                        sendRecording.setVisibility(View.GONE);
+                        stopRecording.setVisibility(View.GONE);
+                        startRecording.setVisibility(View.GONE);
+                        playRecording.setVisibility(View.GONE);
+                        pauseRecording.setVisibility(View.GONE);
+                        recorderButtonFlag = false;
+
+                        if(finalRecorderPath !=null){
+                            if(playPauseStateFlag == 1){
+                                playPauseStateFlag = 0;
+                                mediaPlayer.stop();
+                                mediaPlayer.release();
+                                Log.e(TAG, "onClick: Media player stopped" );
+                            }
+                            File file = new File(finalRecorderPath);
+                   //         file.delete();
+                            finalRecorderPath = null;
+                            recordedFileName = null;
+                            Log.e(TAG, "onClick: File deleted, exit from recorder dashboard" );
+                        }
+
+                        if(recorderStateFlag == 1){
+                            mediaRecorder.stop();
+                            mediaRecorder.release();
+                            Log.e(TAG, "onClick: Recording stopped" );
+                        }
+
+                    }
+                }
+
+                else{
+                    requestPermissionForRecorder();
+                }
+
+            }
+        });
+
+        recorderBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addImage.setVisibility(View.VISIBLE);
+                chatText.setVisibility(View.VISIBLE);
+                recorderDashboard.setVisibility(View.GONE);
+                sendRecording.setVisibility(View.GONE);
+                stopRecording.setVisibility(View.GONE);
+                startRecording.setVisibility(View.GONE);
+                playRecording.setVisibility(View.GONE);
+                pauseRecording.setVisibility(View.GONE);
+
+                if(finalRecorderPath !=null){
+                    if(playPauseStateFlag == 1){
+                        playPauseStateFlag = 0;
+                        mediaPlayer.stop();
+                        mediaPlayer.release();
+                        Log.e(TAG, "onClick: Media player stopped" );
+                    }
+                    File file = new File(finalRecorderPath);
+      //              file.delete();
+                    finalRecorderPath = null;
+                    recordedFileName = null;
+                    Log.e(TAG, "onClick: File deleted, re-recording" );
+                }
+
+                if(recorderStateFlag == 1){
+                    mediaRecorder.stop();
+                    mediaRecorder.release();
+                    Log.e(TAG, "onClick: Recording stopped");
+                }
+
+            }
+        });
+
+        startRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                recorderStateFlag = 1;
+                if(finalRecorderPath !=null){
+                    if(playPauseStateFlag == 1){
+                        playPauseStateFlag = 0;
+                        mediaPlayer.stop();
+                        mediaPlayer.release();
+                        Log.e(TAG, "onClick: Player stopped");
+                    }
+                    File file = new File(finalRecorderPath);
+     //               file.delete();
+                    finalRecorderPath = null;
+                    recordedFileName = null;
+                    Log.e(TAG, "onClick: File deleted, re-recording" );
+                }
+
+                startRecording.setVisibility(View.GONE);
+                stopRecording.setVisibility(View.VISIBLE);
+                sendRecording.setVisibility(View.GONE);
+                playRecording.setVisibility(View.GONE);
+                pauseRecording.setVisibility(View.GONE);
+
+                recordedFileName = UUID.randomUUID().toString() + "_audio_record.3gpp";
+                finalRecorderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() +
+                        "/" + recordedFileName;
+                finalRecorderPath = finalRecorderPath.trim();
+
+                Log.e(TAG, "onClick: " + finalRecorderPath );
+
+                setupMediaRecorder();
+                try {
+                    mediaRecorder.prepare();
+                    mediaRecorder.start();
+                    Log.e(TAG, "onClick: Started recording" );
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.e(TAG, "onClick: recorder error " + e);
+                }
+
+            }
+        });
+
+        stopRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                recorderStateFlag = 0;
+                sendRecording.setVisibility(View.VISIBLE);
+                stopRecording.setVisibility(View.GONE);
+                startRecording.setVisibility(View.VISIBLE);
+                playRecording.setVisibility(View.VISIBLE);
+                pauseRecording.setVisibility(View.GONE);
+                Log.e(TAG, "onClick: Recording stopped" );
+                mediaRecorder.stop();
+                mediaRecorder.release();
+            }
+        });
+
+        sendRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addImage.setVisibility(View.VISIBLE);
+                chatText.setVisibility(View.VISIBLE);
+                recorderDashboard.setVisibility(View.GONE);
+                sendRecording.setVisibility(View.GONE);
+                stopRecording.setVisibility(View.GONE);
+                startRecording.setVisibility(View.GONE);
+                playRecording.setVisibility(View.GONE);
+                pauseRecording.setVisibility(View.GONE);
+                if(playPauseStateFlag == 1){
+                    Log.e(TAG, "onClick: Media player stopped" );
+                    playPauseStateFlag = 0;
+                    mediaPlayer.stop();
+                    mediaPlayer.release();
+                }
+                uploadMediaRecording(recordedFileName, finalRecorderPath);
+                finalRecorderPath = null;
+                recordedFileName = null;
+
+            }
+        });
+
+        playRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                playRecording.setVisibility(View.GONE);
+                pauseRecording.setVisibility(View.VISIBLE);
+
+                mediaPlayer = new MediaPlayer();
+                try {
+                    mediaPlayer.setDataSource(finalRecorderPath);
+                    mediaPlayer.prepare();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                mediaPlayer.start();
+                Log.e(TAG, "onClick: Playing");
+                playPauseStateFlag = 1;
+                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+                        mediaPlayer.release();
+                        playRecording.setVisibility(View.VISIBLE);
+                        pauseRecording.setVisibility(View.GONE);
+                        playPauseStateFlag = 0;
+                        Log.e(TAG, "onCompletion: Completed playing audio");
+                    }
+                });
+            }
+        });
+
+        pauseRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                playRecording.setVisibility(View.VISIBLE);
+                pauseRecording.setVisibility(View.GONE);
+                playPauseStateFlag = 0;
+                Log.e(TAG, "onClick: Paused playing audio");
+                mediaPlayer.stop();
+                mediaPlayer.release();
+            }
+        });
 
         appToken = FirebaseInstanceId.getInstance().getToken();
         ref.child("CONCURRENT USERS").child(mAuth.getUid()).child(appToken).setValue("TOKEN");
@@ -138,6 +382,7 @@ public class ChatListActivity extends AppCompatActivity {
         userName = intent.getStringExtra("NAME");
         FirebaseReferenceInitializer();
 
+        listView = findViewById(R.id.chat_list_view);
         adapter = new ChatAdapter(ChatListActivity.this, mList);
         AsyncMessage();
 
@@ -180,7 +425,6 @@ public class ChatListActivity extends AppCompatActivity {
             }
         });
 
-        listView = findViewById(R.id.chat_list_view);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(ChatListActivity.this);
         final View builderView = getLayoutInflater().inflate(R.layout.unsend_message_layout, null);
@@ -194,6 +438,7 @@ public class ChatListActivity extends AppCompatActivity {
                 alertDialog.dismiss();
             }
         });
+
         final Handler handler = new Handler(Looper.getMainLooper());
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -437,6 +682,18 @@ public class ChatListActivity extends AppCompatActivity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 ref.child("TYPING").child(mAuth.getUid()).child(intent.getStringExtra("KEY")).setValue("TYPING");
                 statusRemover(intent);
+
+                if(s.length() == 0){
+                    recorderButton.setVisibility(View.VISIBLE);
+                    mSend.setVisibility(View.INVISIBLE);
+                }
+                else{
+                    recorderButton.setVisibility(View.INVISIBLE);
+                    mSend.setVisibility(View.VISIBLE);
+                    recorderDashboard.setVisibility(View.INVISIBLE);
+                    chatText.setVisibility(View.VISIBLE);
+                    addImage.setVisibility(View.VISIBLE);
+                }
             }
 
             @Override
@@ -456,7 +713,6 @@ public class ChatListActivity extends AppCompatActivity {
             }
         });
 
-
         backButton = findViewById(R.id.back_button_chat);
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -464,6 +720,52 @@ public class ChatListActivity extends AppCompatActivity {
                 Intent intent = new Intent(ChatListActivity.this, HomePageActivity.class);
                 startActivity(intent);
                 finish();
+            }
+        });
+    }
+
+    private boolean checkPermissionForRecorder() {
+        int write_external_storage = ContextCompat.checkSelfPermission(ChatListActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        int recorder_permission = ContextCompat.checkSelfPermission(ChatListActivity.this, Manifest.permission.RECORD_AUDIO);
+
+        return write_external_storage == PackageManager.PERMISSION_GRANTED && recorder_permission == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestPermissionForRecorder(){
+        ActivityCompat.requestPermissions(ChatListActivity.this, new String[]{
+            Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO}, 1000);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if(requestCode == 1000){
+            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
+            }
+            else{
+                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void setupMediaRecorder(){
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.DEFAULT);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
+        mediaRecorder.setOutputFile(finalRecorderPath);
+    }
+
+    private void uploadMediaRecording(String fileName, String filePath){
+        messageMap(fileName, 2);
+        Uri uriAudio = Uri.fromFile(new File(filePath).getAbsoluteFile());
+        final StorageReference ref = storage.getReference().child("recording/" + fileName);
+        ref.putFile(uriAudio).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                Toast.makeText(ChatListActivity.this, "recording uploaded!", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -486,6 +788,11 @@ public class ChatListActivity extends AppCompatActivity {
         if(flag == 1){
             map.put("TYPE", "IMAGE");
             writeNotification("Has sent you an image", USER_NAME);
+        }
+
+        if(flag == 2){
+            map.put("TYPE", "RECORDING");
+            writeNotification("Has sent you a recording", USER_NAME);
         }
         writeToFirebase(map, intent.getStringExtra("KEY"), flag);
         return map;
@@ -519,9 +826,10 @@ public class ChatListActivity extends AppCompatActivity {
     }
 
     public void writeToFirebase(final HashMap temp, final String ID, final int flag) {
-        if(flag == 0)
-        mList.add(temp);
-        adapter.notifyDataSetChanged();
+        if(flag == 0){
+            mList.add(temp);
+            adapter.notifyDataSetChanged();
+        }
         ref.child("NEW MESSAGE").push().setValue(temp, new DatabaseReference.CompletionListener() {
             @Override
             public void onComplete(@Nullable DatabaseError databaseError, @NonNull final DatabaseReference databaseReference) {
@@ -539,6 +847,12 @@ public class ChatListActivity extends AppCompatActivity {
                     ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("you sent an image");
                     ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("sent you an image");
                 }
+
+                else if(flag == 2){
+                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("you sent a recording");
+                    ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("sent you a recording");
+                }
+
                 ref.child("UNREAD MESSAGE").child(databaseReference.getKey()).setValue(temp);
                 temp.put("KEY", databaseReference.getKey());
                 AsyncTask.execute(new Runnable() {
@@ -553,6 +867,12 @@ public class ChatListActivity extends AppCompatActivity {
                     mList.add(temp);
                     adapter.notifyDataSetChanged();
                 }
+
+                else if(flag == 2){
+                    mList.add(temp);
+                    adapter.notifyDataSetChanged();
+                }
+
                 mKeyList.add(databaseReference.getKey());
                 AsyncMessage(temp, databaseReference.getKey());
             }
@@ -616,7 +936,6 @@ public class ChatListActivity extends AppCompatActivity {
                     .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                            //AsyncAddImageToDatabase(byteArray, name, messageMap(name, 1));
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
@@ -660,7 +979,27 @@ public class ChatListActivity extends AppCompatActivity {
         ref.child("CONCURRENT USERS").child(mAuth.getUid()).removeEventListener(ConcurrentUserNodeListener);
         ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(appToken).child(userKey).removeEventListener(ConcurrentTokensListener);
 
+        adapter.stopAudioPlayer();
 
+        try{
+            if(mediaPlayer != null){
+                mediaPlayer.stop();
+                mediaPlayer.release();
+            }
+        }
+        catch (IllegalStateException e){
+
+        }
+
+        try{
+            if(mediaRecorder != null){
+                mediaRecorder.stop();
+                mediaRecorder.release();
+            }
+        }
+        catch (IllegalStateException e){
+
+        }
     }
 
     @Override

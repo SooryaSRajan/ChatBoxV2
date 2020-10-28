@@ -70,6 +70,9 @@ public class FragmentTwo extends Fragment {
     int listPosition = 0;
     ProfileListAdapter adapter;
 
+    public FragmentTwo(){
+
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,

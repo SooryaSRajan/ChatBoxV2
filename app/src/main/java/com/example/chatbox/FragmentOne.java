@@ -64,7 +64,7 @@ public class FragmentOne extends Fragment {
     private ValueEventListener countListener;
     private static ListView listView;
 
-    FragmentOne(){
+    public FragmentOne(){
         super();
     }
 

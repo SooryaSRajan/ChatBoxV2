@@ -77,6 +77,7 @@ int flag1, flag2;
                     flag2++;
                 }
                 if(flag1 == 0 && flag2 == 0){
+                    signIn.setVisibility(View.INVISIBLE);
                     loginUser(mEmail, mPassword);
                 }
 
@@ -93,6 +94,7 @@ int flag1, flag2;
     public void loginUser(String email, String password){
         Log.e(TAG, "loginUser: InLoginUserMethod");
         FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 if(task.isSuccessful()){
@@ -134,9 +136,11 @@ int flag1, flag2;
                                     startActivity(intent);
                                     finish();
                                 }
+
                                 @Override
                                 public void onCancelled(@NonNull DatabaseError error) {
                                     Log.e(TAG, "onCancelled: " + error );
+
                                 }
                             });
                         }
@@ -146,7 +150,11 @@ int flag1, flag2;
 
                         }
                     });
-            }
+                }
+                else{
+                    Toast.makeText(LoginActivity.this, "Login Failed", Toast.LENGTH_SHORT).show();
+                    signIn.setVisibility(View.VISIBLE);
+                }
             }
         });
     }
@@ -173,10 +181,15 @@ int flag1, flag2;
             @Override
             public void run() {
                 super.run();
-                MessageDatabase database = MessageDatabase.getInstance(LoginActivity.this);
-                MessageData dataObject = new MessageData(mKey, mFrom, mTo, mTime, mMessage, mType);
-                database.dao().InsertMessage(dataObject);
-                Log.e(TAG, "run: Message Added" );
+                try{
+                    MessageDatabase database = MessageDatabase.getInstance(LoginActivity.this);
+                    MessageData dataObject = new MessageData(mKey, mFrom, mTo, mTime, mMessage, mType);
+                    database.dao().InsertMessage(dataObject);
+                    Log.e(TAG, "run: Message Added" );
+                }
+                catch (Exception e){
+                }
+
             }
         };
         thread.start();

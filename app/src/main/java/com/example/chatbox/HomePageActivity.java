@@ -50,7 +50,6 @@ import static com.example.chatbox.R.id.user_name_navigation_view;
 
 public class HomePageActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG =  "HomePageActicity";
-    String ACTION_START_SERVICE = "ACTION_START_SERVICE";
     DrawerLayout drawerLayout;
     ActionBarDrawerToggle actionBarDrawerToggle;
     Toolbar toolbar;

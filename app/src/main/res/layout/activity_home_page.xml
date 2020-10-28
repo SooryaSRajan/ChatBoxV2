@@ -30,6 +30,7 @@
         android:layout_width="match_parent"
         layout="@layout/tool_bar_search"
         android:layout_height="wrap_content" />
+
     <include
         android:layout_marginTop="?attr/actionBarSize"
         android:layout_width="match_parent"
@@ -54,41 +55,33 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <ProgressBar
-
-            android:id="@+id/progress_circular_bar"
-            android:layout_centerInParent="true"
-            android:layout_width="150dp"
-            android:layout_height="150dp"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/progress_circular_bar"
-            android:text="loading..."
-            android:layout_centerInParent="true"
-            android:textColor="@color/colorWhite"/>
-
-        <TextView
-            android:layout_above="@+id/progress_circular_bar"
+        <ImageView
+            android:src="@drawable/ic_launcher_foreground"
+            android:background="@drawable/button_drawable_background"
             android:layout_marginTop="80dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="The Chat Box"
-            android:fontFamily="cursive"
-            android:textColor="@color/colorWhite"
-            android:layout_centerInParent="true"
-            android:textSize="66sp"
-            android:textStyle="italic"/>
+            android:layout_width="170dp"
+            android:layout_height="170dp"
+            android:layout_centerInParent="true"/>
 
         <TextView
-            android:layout_alignParentBottom="true"
+            android:layout_above="@id/progress_circular_bar"
+            android:fontFamily="sans-serif-condensed-medium"
             android:id="@+id/user_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/colorWhite"
-            android:layout_marginBottom="20dp"
             android:text="By Soorya S Rajan"
             android:layout_centerInParent="true"/>
+
+        <ProgressBar
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="30dp"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:id="@+id/progress_circular_bar"
+            android:layout_width="30dp"
+            android:layout_height="30dp"/>
+
 
     </RelativeLayout>
 

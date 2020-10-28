@@ -33,6 +33,16 @@
         android:layout_width="wrap_content"
         android:layout_height="?attr/actionBarSize"/>
 
+    <ImageButton
+        android:layout_margin="15dp"
+        android:src="@drawable/ic_baseline_mic_24"
+        android:id="@+id/recorder_button"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/circle"
+        android:layout_width="wrap_content"
+        android:layout_height="?attr/actionBarSize"/>
+
     <RelativeLayout
         android:id="@+id/status"
         android:layout_width="wrap_content"
@@ -80,5 +90,94 @@
         android:layout_alignParentBottom="true"
         android:src="@drawable/ic_add_circle_black_24dp"
         android:id="@+id/add_resource"/>
+
+    <RelativeLayout
+        android:id="@+id/recorder_dashboard"
+        android:background="@drawable/transparent_background"
+        android:layout_alignParentBottom="true"
+        android:layout_toStartOf="@+id/message_button"
+        android:layout_marginTop="15dp"
+        android:layout_marginBottom="15dp"
+        android:layout_marginStart="15dp"
+        android:padding="13dp"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_width="match_parent">
+
+        <ImageButton
+            android:id="@+id/exit_recorder"
+            android:background="@color/colorTransparent"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_baseline_exit_to_app_24"
+            android:layout_alignParentStart="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <RelativeLayout
+            android:id="@+id/recorder_option_relative_layout"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+        <ImageButton
+            android:id="@+id/start_recording"
+            android:background="@color/colorTransparent"
+            android:src="@drawable/ic_baseline_fiber_manual_record_24"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <ImageButton
+            android:id="@+id/stop_recording"
+            android:background="@color/colorTransparent"
+            android:src="@drawable/ic_baseline_stop_24"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:layout_toLeftOf="@+id/recorder_option_relative_layout"
+            android:id="@+id/recorder_play_pause_layout"
+            android:layout_centerVertical="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <ImageButton
+                android:layout_marginRight="7dp"
+                android:id="@+id/play_recording"
+                android:background="@color/colorTransparent"
+                android:src="@drawable/ic_baseline_play_arrow_24"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <ImageButton
+                android:layout_marginRight="7dp"
+                android:id="@+id/pause_recording"
+                android:background="@color/colorTransparent"
+                android:src="@drawable/ic_baseline_pause_24"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </RelativeLayout>
+
+
+        <Button
+            android:layout_toLeftOf="@+id/recorder_play_pause_layout"
+            android:id="@+id/send_recording"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="15dp"
+            android:background="#0064DD"
+            android:text="Send"
+            android:textColor="@color/colorWhite" />
+
+        <TextView
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:layout_toEndOf="@+id/exit_recorder"
+            android:textColor="@color/colorWhite"
+            android:layout_centerVertical="true"
+            android:layout_toStartOf="@+id/send_recording"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </RelativeLayout>
 
 </RelativeLayout>

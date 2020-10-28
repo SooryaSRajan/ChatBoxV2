@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/login_ui"
     android:background="@drawable/gradient_background"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -13,6 +13,7 @@
         android:layout_height="match_parent">
 
     <TextView
+        android:fontFamily="sans-serif-condensed-medium"
         android:text="Sign In"
         android:textSize="60sp"
         android:textColor="@color/colorWhite"
@@ -23,6 +24,7 @@
         android:layout_height="wrap_content"/>
 
     <TextView
+        android:fontFamily="sans-serif-condensed-medium"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
@@ -32,22 +34,15 @@
         android:layout_marginBottom="80dp"
         android:textColor="@color/colorWhite"/>
 
-    <TextView
-        android:id="@+id/user_name_error_sign_in"
-        android:textColor="@color/colorRed"
-        android:layout_marginEnd="40dp"
-        android:textSize="17sp"
-        android:layout_alignParentEnd="true"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
-
 
     <EditText
+        android:drawableLeft="@drawable/ic_baseline_email_24"
+        android:drawablePadding="10dp"
         android:textAllCaps="true"
         android:id="@+id/user_email_sign_in"
         android:layout_width="match_parent"
         android:inputType="textEmailAddress"
-        android:padding="10dp"
+        android:padding="15dp"
         android:textColorHint="@color/colorGrey"
         android:layout_height="wrap_content"
         android:layout_marginLeft="40dp"
@@ -58,11 +53,13 @@
         android:layout_marginBottom="40dp"/>
 
     <EditText
+        android:drawableLeft="@drawable/ic_baseline_lock_24"
+        android:drawablePadding="10dp"
         android:textAllCaps="true"
         android:id="@+id/user_password_sign_in"
         android:layout_width="match_parent"
         android:inputType="textPassword"
-        android:padding="10dp"
+        android:padding="15dp"
         android:layout_below="@+id/user_email_sign_in"
         android:textColorHint="@color/colorGrey"
         android:layout_height="wrap_content"
@@ -73,7 +70,7 @@
         android:layout_marginBottom="40dp"/>
 
     <Button
-        android:background="@color/colorPrimary"
+        android:background="@drawable/button_drawable_background"
         android:id="@+id/sign_in_button"
         android:padding="10dp"
         android:text="Sign In"
@@ -105,13 +102,23 @@
         android:id="@+id/login_loading_screen">
 
         <TextView
+            android:id="@+id/downloading_data_text"
             android:textColor="@color/colorWhite"
-            android:text="Downloading Data..."
+            android:text="Downloading Data"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
             android:layout_alignParentBottom="true"
             android:layout_marginBottom="80dp"/>
+
+        <ProgressBar
+            android:layout_marginLeft="10dp"
+            android:layout_marginBottom="80dp"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_toEndOf="@id/downloading_data_text"
+            android:layout_width="20dp"
+            android:layout_height="20dp"/>
 
     </RelativeLayout>
 
