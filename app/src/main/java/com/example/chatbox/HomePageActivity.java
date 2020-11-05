@@ -80,41 +80,6 @@ public class HomePageActivity extends AppCompatActivity implements NavigationVie
         toolbar = findViewById(R.id.search_bar_tool_bar);
         toolbar.setVisibility(View.GONE);
 
-        final ImageButton searchBack = findViewById(R.id.search_back);
-        final EditText searchBox = findViewById(R.id.search_bar);
-
-        searchBack.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                try {
-                    InputMethodManager imm = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
-                } catch (Exception e) {
-                    // TODO: handle exception
-                }
-                toolbar = findViewById(R.id.search_bar_tool_bar);
-                toolbar.setVisibility(View.GONE);
-
-                toolbar = findViewById(R.id.tool_bar);
-                toolbar.setVisibility(View.VISIBLE);
-
-                layout = findViewById(R.id.tab_layout);
-                layout.setVisibility(View.VISIBLE);
-                text = findViewById(R.id.search_bar);
-                text.setText("");
-
-
-                final View touchView = findViewById(R.id.view_pager);
-                touchView.setOnTouchListener(new View.OnTouchListener() {
-                    @Override
-                    public boolean onTouch(View v, MotionEvent event) {
-                        return false;
-                    }
-                });
-
-            }
-        });
 
         toolbar = findViewById(R.id.tool_bar);
         setSupportActionBar(toolbar);

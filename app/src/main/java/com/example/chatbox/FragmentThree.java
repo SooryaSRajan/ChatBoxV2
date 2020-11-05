@@ -239,7 +239,9 @@ public class FragmentThree extends Fragment {
                                     return o1.get("NAME").toString().compareTo(o2.get("NAME").toString());
                                 }
                             });
+
                             ListViewUpdater();
+
                             Collections.sort(profileMap, new Comparator<HashMap>() {
                                 @Override
                                 public int compare(HashMap o1, HashMap o2) {

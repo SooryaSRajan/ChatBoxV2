@@ -1,12 +1,12 @@
 package com.example.chatbox.MessageDatabase;
 
-import android.content.Context;
+        import android.content.Context;
 
-import androidx.room.Database;
-import androidx.room.Room;
-import androidx.room.RoomDatabase;
+        import androidx.room.Database;
+        import androidx.room.Room;
+        import androidx.room.RoomDatabase;
 
-import com.example.chatbox.user_profile_database.profile;
+        import com.example.chatbox.user_profile_database.profile;
 
 @Database(entities = MessageData.class, exportSchema = false, version = 1)
 public abstract class MessageDatabase extends RoomDatabase {

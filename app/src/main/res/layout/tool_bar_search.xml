@@ -4,28 +4,15 @@
 
     <androidx.appcompat.widget.Toolbar
     android:id="@+id/search_bar_tool_bar"
-        android:background="@color/colorPrimary"
+    android:background="@color/colorPrimary"
     android:layout_width="match_parent"
     android:layout_height="?attr/actionBarSize">
 
-     <ImageButton
-         android:layout_width="40dp"
-         android:id="@+id/search_back"
-         android:layout_height="?attr/actionBarSize"
-         android:src="@drawable/ic_arrow_back_black_24dp"
-         android:background="@color/colorPrimary"/>
-
-
-    <EditText
-        android:background="@color/colorPrimary"
-        android:padding="4dp"
-        android:textColor="@color/colorWhite"
-        android:hint="@string/search"
-        android:textColorHint="@color/colorGrey"
-        android:id="@+id/search_bar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"/>
-
+     <androidx.appcompat.widget.SearchView
+         android:id="@id/search_bar"
+         android:queryHint="Search..."
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"/>
 
 </androidx.appcompat.widget.Toolbar>
 

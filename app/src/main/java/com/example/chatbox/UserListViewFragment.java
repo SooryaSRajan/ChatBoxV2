@@ -8,6 +8,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -21,6 +22,7 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -50,11 +52,11 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
     private FragmentManager fragmentManager;
     Context context;
     SwipeRefreshLayout pullToRefresh;
-    String ACTION_START_SERVICE = "ACTION_START_SERVICE";
     FragmentOne fragmentOne;
     FragmentTwo fragmentTwo;
     FragmentThree fragmentThree;
     ArrayList<HashMap> mMapList = new ArrayList<>();
+    TabLayout layout;
 
     public UserListViewFragment(){
         super();
@@ -91,50 +93,71 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
         adapter.addFragment(fragmentThree, "Find Friends");
 
 
-        final EditText mSearch = getActivity().findViewById(R.id.search_bar);
+        final SearchView mSearch = getActivity().findViewById(R.id.search_bar);
         final ViewPager viewPager = view.findViewById(R.id.view_pager);
         pullToRefresh = getActivity().findViewById(R.id.pullToRefresh);
         pullToRefresh.setOnRefreshListener(this);
 
+        final Toolbar toolbar = getActivity().findViewById(R.id.search_bar_tool_bar);
 
-        mSearch.addTextChangedListener(new TextWatcher() {
+        mSearch.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
+            public boolean onQueryTextSubmit(String query) {
+                return false;
             }
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            public boolean onQueryTextChange(String newText) {
 
-                if(viewPager.getCurrentItem() == 0)
-                    fragmentOne.searchFunction(s.toString());
 
-                else if(viewPager.getCurrentItem() == 1)
-                    fragmentTwo.searchFunction(s.toString());
+                if (viewPager.getCurrentItem() == 0)
+                    fragmentOne.searchFunction(newText);
 
-                else if(viewPager.getCurrentItem() == 2)
-                    fragmentThree.searchFunction(s.toString());
+                else if (viewPager.getCurrentItem() == 1)
+                    fragmentTwo.searchFunction(newText);
 
-            }
+                else if (viewPager.getCurrentItem() == 2)
+                    fragmentThree.searchFunction(newText);
 
-            @Override
-            public void afterTextChanged(Editable s) {
-                Toolbar toolbar = getActivity().findViewById(R.id.search_bar_tool_bar);
+                if (toolbar.getVisibility() == View.GONE) {
 
-                Log.e(TAG, "afterTextChanged: Called" );
-                if(toolbar.getVisibility() == View.GONE){
-
-                    Log.e(TAG, "afterTextChanged: Button Gone" );
-                    if(viewPager.getCurrentItem() == 0)
+                    Log.e(TAG, "afterTextChanged: Button Gone");
+                    if (viewPager.getCurrentItem() == 0)
                         fragmentOne.SearchBackPressed();
 
-                    else if(viewPager.getCurrentItem() == 1)
+                    else if (viewPager.getCurrentItem() == 1)
                         fragmentTwo.SearchBackPressed();
 
-                    else if(viewPager.getCurrentItem() == 2)
+                    else if (viewPager.getCurrentItem() == 2)
                         fragmentThree.SearchBackPressed();
 
                 }
+                return false;
+            }
+        });
+
+        mSearch.setOnCloseListener(new SearchView.OnCloseListener() {
+            @Override
+            public boolean onClose() {
+
+                final View touchView = view.findViewById(R.id.view_pager);
+                touchView.setOnTouchListener(new View.OnTouchListener() {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        return false;
+                    }
+                });
+
+                Toolbar toolbar = getActivity().findViewById(R.id.search_bar_tool_bar);
+                toolbar.setVisibility(View.GONE);
+
+                toolbar = getActivity().findViewById(R.id.tool_bar);
+                toolbar.setVisibility(View.VISIBLE);
+
+                layout = getActivity().findViewById(R.id.tab_layout);
+                layout.setVisibility(View.VISIBLE);
+
+                return false;
             }
         });
 
@@ -142,6 +165,7 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
         viewPager.setAdapter(adapter);
         tabLayout.setupWithViewPager(viewPager);
         viewPager.setOffscreenPageLimit(3);
+
         final ArrayList<String> userList = new ArrayList<>();
         final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER ACCOUNT CHANGE");
         reference.addValueEventListener(new ValueEventListener() {

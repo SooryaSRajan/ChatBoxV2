@@ -22,7 +22,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.ContactsContract;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -1023,7 +1022,6 @@ public class ChatListActivity extends AppCompatActivity {
                     MessageData data = messageData.get(i);
                     if (data.mFrom.contains(userKey) || data.mTo.contains(userKey) && data.mMessage != null) {
                         HashMap map = new HashMap();
-                        Log.e(TAG, "run: " + data.mMessage);
                         Log.e(TAG, "run: " + data.mMessage);
                         if (data.mFrom.contains(userKey))
                             map.put("NAME", userName);
