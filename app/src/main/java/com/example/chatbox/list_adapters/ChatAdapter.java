@@ -1,5 +1,6 @@
 package com.example.chatbox.list_adapters;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -16,14 +17,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.chatbox.ChatListActivity;
 import com.example.chatbox.R;
@@ -31,6 +30,8 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.UUID;
 
 public class ChatAdapter extends BaseAdapter {
 
@@ -83,19 +83,41 @@ public class ChatAdapter extends BaseAdapter {
         return 0;
     }
 
+    static class ViewHolderPlayer {
+        ImageButton playButton;
+        ImageButton pauseButton;
+        SeekBar seekBar;
+        ProgressBar progressBar;
+    }
+
+    static class ViewHolderImage{
+        ImageView messageImage;
+        ProgressBar imageProgressBar;
+    }
+
+    static class ViewHolderMessage{
+        TextView messageText;
+        TextView messageTime;
+        TextView messageName;
+
+    }
+
+    @SuppressLint("SimpleDateFormat")
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
 
         final HashMap map = chatList.get(position);
-        final ViewHolder holder;
-        final int firstPosition = ChatListActivity.listView.getFirstVisiblePosition() - ChatListActivity.listView.getHeaderViewsCount();
-        final int lastPosition = ChatListActivity.listView.getLastVisiblePosition();
+        final ViewHolderPlayer holder;
+        final ViewHolderImage imageHolder;
 
         LayoutInflater inflater = activity.getLayoutInflater();
 
+        /**
+         * Time and Date is parsed in the following set of lines*
+         * */
         String time = map.get("TIME").toString();
         try {
-            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date date = format.parse(time);
             Date currentTime = Calendar.getInstance().getTime();
 
@@ -116,6 +138,9 @@ public class ChatAdapter extends BaseAdapter {
             Log.e(TAG, "Chat Adapter Time Exception: " + e.toString());
         }
 
+        /**
+         * Message Layout
+         */
         if(map.get("TYPE").toString().contains("MESSAGE")) {
 
             if (map.get("FROM").toString().contains(mAuth.getUid()))
@@ -129,7 +154,9 @@ public class ChatAdapter extends BaseAdapter {
             TextView mTime = convertView.findViewById(R.id.text_time_list);
 
 
-            /***Date And Time Formatter For List View Chat**/
+            /**
+             * *Date And Time Formatter For List View Chat*
+             * */
 
             try {
                 mName.setText(map.get("NAME").toString());
@@ -145,6 +172,9 @@ public class ChatAdapter extends BaseAdapter {
             }
         }
 
+        /**
+         * Image Layout
+         */
         else if(map.get("TYPE").toString().contains("IMAGE")){
 
             if (map.get("FROM").toString().contains(mAuth.getUid()))
@@ -153,11 +183,16 @@ public class ChatAdapter extends BaseAdapter {
             else
                 convertView = inflater.inflate(R.layout.message_image_layout_other, null);
 
+
             ImageView imageView = convertView.findViewById(R.id.message_image_view);
             ProgressBar progressBar = convertView.findViewById(R.id.progress_circular_bar_image);
             GetImageBitmap(map.get("MESSAGE").toString(), imageView, progressBar);
         }
 
+
+        /**
+         * Recorder layout*
+         * */
         else if(map.get("TYPE").toString().contains("RECORDING")) {
                 if (map.get("FROM").toString().contains(mAuth.getUid())) {
                     convertView = inflater.inflate(R.layout.recording_user_list, null);
@@ -165,7 +200,7 @@ public class ChatAdapter extends BaseAdapter {
                     convertView = inflater.inflate(R.layout.recording_other_list, null);
                 }
 
-            holder = new ViewHolder();
+            holder = new ViewHolderPlayer();
 
             holder.playButton = convertView.findViewById(R.id.list_view_recording_play);
             holder.pauseButton = convertView.findViewById(R.id.list_view_recording_pause);
@@ -294,13 +329,6 @@ public class ChatAdapter extends BaseAdapter {
         }
     }
 
-    static class ViewHolder {
-        ImageButton playButton;
-        ImageButton pauseButton;
-        SeekBar seekBar;
-        ProgressBar progressBar;
-    }
-
     public void stopAudioPlayer(){
         if(mediaPlayer != null){
             try{
@@ -313,7 +341,7 @@ public class ChatAdapter extends BaseAdapter {
         }
     }
 
-    void voiceRecordingControls(final ViewHolder holder, final int position, final String path){
+    void voiceRecordingControls(final ViewHolderPlayer holder, final int position, final String path){
         if (position != recorderButtonPressedPosition) {
             holder.playButton.setVisibility(View.VISIBLE);
             holder.pauseButton.setVisibility(View.INVISIBLE);
