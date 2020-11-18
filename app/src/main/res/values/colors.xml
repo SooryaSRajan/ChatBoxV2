@@ -14,5 +14,6 @@
     <color name="colorTransparent">#00FFFFFF</color>
     <color name="colorGreen">#BE40CC97</color>
     <color name="colorLimeGreen">#37FF00</color>
+    <color name="colorTransparentHilight">#6B00FFE6</color>
 
 </resources>

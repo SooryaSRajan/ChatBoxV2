@@ -6,14 +6,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.LinearSmoothScroller;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
@@ -25,16 +26,13 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,7 +42,7 @@ import com.example.chatbox.FCMNotifications.NotificationContent;
 import com.example.chatbox.FCMNotifications.RetrofitClient;
 import com.example.chatbox.MessageDatabase.MessageData;
 import com.example.chatbox.MessageDatabase.MessageDatabase;
-import com.example.chatbox.list_adapters.ChatAdapter;
+import com.example.chatbox.list_adapters.ChatRecyclerAdapter;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
@@ -58,12 +56,10 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -105,7 +101,7 @@ public class ChatListActivity extends AppCompatActivity {
     private ArrayList<HashMap> mList = new ArrayList<>();
     private Set<String> mKeyList = new HashSet<>();
     private ArrayList<String> tokenList = new ArrayList<>();
-    private static ChatAdapter adapter;
+   // private static ChatAdapter adapter;
     private EditText chatText;
     private ImageButton mSend;
     private String mMessage;
@@ -120,7 +116,6 @@ public class ChatListActivity extends AppCompatActivity {
     private NotificationContent content;
     private NotificationBody notificationBody;
     private APIInterface apiInterface;
-    private int onLongClickPosition = 0;
     private String appToken;
     private ArrayList<String> concurrentMessageKeys = new ArrayList<>();
     private FirebaseStorage storage;
@@ -132,6 +127,10 @@ public class ChatListActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer;
     private String finalRecorderPath = null, recordedFileName = null;
     private int playPauseStateFlag = 0, recorderStateFlag = 0;
+    private float MILLISECONDS_PER_INCH = 10;
+
+    private ChatRecyclerAdapter adapter;
+    private RecyclerView recyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -381,8 +380,35 @@ public class ChatListActivity extends AppCompatActivity {
         userName = intent.getStringExtra("NAME");
         FirebaseReferenceInitializer();
 
+        /*
         listView = findViewById(R.id.chat_list_view);
         adapter = new ChatAdapter(ChatListActivity.this, mList);
+        */
+
+        recyclerView = findViewById(R.id.chat_recycler_view);
+        adapter = new ChatRecyclerAdapter(mList, getWindow().getDecorView().getRootView(), this);
+        recyclerView.setHasFixedSize(true);
+        final LinearLayoutManager manager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(manager);
+        manager.setStackFromEnd(true);
+        recyclerView.setAdapter(adapter);
+
+        adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                LinearSmoothScroller linearSmoothScroller = new LinearSmoothScroller(recyclerView.getContext()) {
+
+                    @Override
+                    protected float calculateSpeedPerPixel(DisplayMetrics displayMetrics) {
+                        return MILLISECONDS_PER_INCH / displayMetrics.densityDpi;
+                    }
+                };
+
+                linearSmoothScroller.setTargetPosition(adapter.getItemCount());
+                manager.startSmoothScroll(linearSmoothScroller);
+            }
+        });
+
         AsyncMessage();
 
         Log.e(TAG, "onCreate: " + USER_NAME + userName + userKey);
@@ -424,7 +450,7 @@ public class ChatListActivity extends AppCompatActivity {
             }
         });
 
-
+/*
         AlertDialog.Builder builder = new AlertDialog.Builder(ChatListActivity.this);
         final View builderView = getLayoutInflater().inflate(R.layout.unsend_message_layout, null);
         builder.setView(builderView);
@@ -437,8 +463,9 @@ public class ChatListActivity extends AppCompatActivity {
                 alertDialog.dismiss();
             }
         });
-
+*/
         final Handler handler = new Handler(Looper.getMainLooper());
+        /*
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
@@ -488,6 +515,8 @@ public class ChatListActivity extends AppCompatActivity {
             }
         });
 
+         */
+/*
         listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
@@ -624,7 +653,7 @@ public class ChatListActivity extends AppCompatActivity {
                 return true;
             }
         });
-
+*/
         mOnlineStatus = findViewById(R.id.online_status);
         mTypingStatus = findViewById(R.id.typing_status);
         mSeenStatus = findViewById(R.id.seen_status);
@@ -827,7 +856,7 @@ public class ChatListActivity extends AppCompatActivity {
     public void writeToFirebase(final HashMap temp, final String ID, final int flag) {
         if(flag == 0){
             mList.add(temp);
-            adapter.notifyDataSetChanged();
+            adapter.notifyItemInserted(mList.size() - 1);
         }
         ref.child("NEW MESSAGE").push().setValue(temp, new DatabaseReference.CompletionListener() {
             @Override
@@ -864,12 +893,12 @@ public class ChatListActivity extends AppCompatActivity {
                 if(flag == 0){
                     mList.remove(mList.size() - 1);
                     mList.add(temp);
-                    adapter.notifyDataSetChanged();
+                    adapter.notifyItemChanged(mList.size()-1);
                 }
 
                 else if(flag == 2){
                     mList.add(temp);
-                    adapter.notifyDataSetChanged();
+                    adapter.notifyItemInserted(mList.size()-1);
                 }
 
                 mKeyList.add(databaseReference.getKey());
@@ -929,7 +958,8 @@ public class ChatListActivity extends AppCompatActivity {
             final String name = mAuth.getUid() + getDateTime() + (new Random().nextInt());
             saveImage(ChatListActivity.this, bitmap, name);
             mList.add(messageMap(name, 1));
-            adapter.notifyDataSetChanged();
+            adapter.notifyItemInserted(mList.size() - 1);
+     //       adapter.notifyDataSetChanged();
             final StorageReference ref = storage.getReference().child("images/message/" + name);
             ref.putBytes(byteArray)
                     .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
@@ -978,7 +1008,7 @@ public class ChatListActivity extends AppCompatActivity {
         ref.child("CONCURRENT USERS").child(mAuth.getUid()).removeEventListener(ConcurrentUserNodeListener);
         ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(appToken).child(userKey).removeEventListener(ConcurrentTokensListener);
 
-        adapter.stopAudioPlayer();
+       // adapter.stopAudioPlayer();
 
         try{
             if(mediaPlayer != null){
@@ -1045,7 +1075,6 @@ public class ChatListActivity extends AppCompatActivity {
                 handler.post(new Runnable() {
                     public void run() {
                         // UI code goes here
-                        adapter.notifyDataSetChanged();
                         Collections.sort(mList, new Comparator<HashMap>() {
                             @Override
                             public int compare(HashMap o1, HashMap o2) {
@@ -1053,9 +1082,7 @@ public class ChatListActivity extends AppCompatActivity {
                             }
                         });
                         Log.e(TAG, "run: Adapter called");
-                        listView = findViewById(R.id.chat_list_view);
-                        listView.setAdapter(adapter);
-
+                        adapter.notifyDataSetChanged();
                         refMain.addValueEventListener(MessageReceiverListener);
 
                     }
@@ -1150,7 +1177,7 @@ public class ChatListActivity extends AppCompatActivity {
                         if (x != -1) {
                             mList.remove(x);
                             mKeyList.remove(snap.getKey());
-                            adapter.notifyDataSetChanged();
+                            adapter.notifyItemRemoved(x);
                             Log.e(TAG, "onDataChange: Removable keys" + snap.getKey());
                             AsyncTask.execute(new Runnable() {
                                 @Override
@@ -1187,7 +1214,7 @@ public class ChatListActivity extends AppCompatActivity {
                         if (x != -1) {
                             mList.remove(x);
                             mKeyList.remove(snap.getKey());
-                            adapter.notifyDataSetChanged();
+                            adapter.notifyItemRemoved(x);
                             AsyncTask.execute(new Runnable() {
                                 @Override
                                 public void run() {
@@ -1316,13 +1343,16 @@ public class ChatListActivity extends AppCompatActivity {
                                     map.put("TYPE", snap.child("TYPE").getValue().toString());
                                     mList.add(map);
                                     mKeyList.add(snap.getKey());
+                                    adapter.notifyItemInserted(mList.size() -1);
 
+                                    /*
                                     Collections.sort(mList, new Comparator<HashMap>() {
                                         @Override
                                         public int compare(HashMap o1, HashMap o2) {
                                             return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
                                         }
                                     });
+                                    */
 
                                     AsyncTask.execute(new Runnable() {
                                         @Override
@@ -1332,7 +1362,7 @@ public class ChatListActivity extends AppCompatActivity {
                                         }
                                     });
 
-                                    adapter.notifyDataSetChanged();
+        //                            adapter.notifyDataSetChanged();
 
                                     if(map.get("TYPE").toString().contains("MESSAGE"))
                                         ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size() - 1).get("MESSAGE").toString());
@@ -1418,8 +1448,8 @@ public class ChatListActivity extends AppCompatActivity {
                         return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
                     }
                 });
-
-                adapter.notifyDataSetChanged();
+                 adapter.notifyItemInserted(mList.size() -1 );
+      //          adapter.notifyDataSetChanged();
 
                 Log.e(TAG, "onDataChange: AsyncSingleValueListener");
                 AsyncTask.execute(new Runnable() {
@@ -1477,6 +1507,8 @@ public class ChatListActivity extends AppCompatActivity {
         }
 
     }
+
+
 
 }
 

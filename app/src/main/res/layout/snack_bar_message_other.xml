@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="horizontal" android:layout_width="match_parent"
+    android:weightSum="2"
+    android:background="#2C2C2C"
+    android:layout_height="wrap_content">
+
+    <Button
+        android:background="#2C2C2C"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-condensed-medium"
+        android:textColor="#FFFFFF"
+        android:layout_weight="1"
+        android:text="Copy"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:ignore="HardcodedText" />
+
+    <Button
+        android:id="@+id/remove"
+        android:background="#2C2C2C"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-condensed-medium"
+        android:textColor="#FFFFFF"
+        android:layout_weight="1"
+        android:text="Remove"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:ignore="HardcodedText" />
+
+</LinearLayout>
