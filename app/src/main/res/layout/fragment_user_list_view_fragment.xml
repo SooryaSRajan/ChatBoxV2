@@ -3,8 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".UserListViewFragment">
-
 
     <androidx.viewpager.widget.ViewPager
         android:layout_width="match_parent"
@@ -12,6 +12,9 @@
         android:id="@+id/view_pager">
 
     <com.google.android.material.tabs.TabLayout
+        app:tabIndicatorColor="@color/colorAccent"
+        app:tabTextColor="#B5B5B5"
+        app:tabSelectedTextColor="@color/colorWhite"
         android:id="@+id/tab_layout"
         android:layout_width="match_parent"
         android:theme="@android:style/Theme"

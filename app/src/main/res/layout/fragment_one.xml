@@ -2,6 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/layoutM"
     android:layout_height="match_parent"
     tools:context=".FragmentOne">
@@ -26,6 +27,19 @@
             android:id="@+id/list_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
+
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            app:maxImageSize="30dp"
+            app:borderWidth="0dp"
+            android:backgroundTint="@color/colorPrimaryBox"
+            android:src="@drawable/ic_baseline_add_24"
+            android:layout_margin="20dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:layout_width="55dp"
+            android:layout_height="55dp"/>
+
     </RelativeLayout>
 
 </FrameLayout>

@@ -25,6 +25,7 @@ import android.widget.TextView;
 import com.example.chatbox.list_adapters.ProfileListAdapter;
 import com.example.chatbox.user_profile_database.UserProfileTable;
 import com.example.chatbox.user_profile_database.profile;
+import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -63,9 +64,11 @@ public class FragmentOne extends Fragment {
 
     private ValueEventListener countListener;
     private static ListView listView;
+    private TabLayout tabLayout;
 
-    public FragmentOne(){
+    public FragmentOne(TabLayout tabLayout){
         super();
+        this.tabLayout = tabLayout;
     }
 
     @Override
@@ -78,6 +81,8 @@ public class FragmentOne extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
+
 
         Log.e(TAG, "onCreateView: Frag 1" );
         // Inflate the layout for this fragment
@@ -102,6 +107,16 @@ public class FragmentOne extends Fragment {
 
                 startActivity(intent);
                 getActivity().finish();
+            }
+        });
+
+        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                BottomNavigationDrawerFragment bottomDrawerFragment = new BottomNavigationDrawerFragment(searchMap.get(i).get("NAME").toString());
+                bottomDrawerFragment.show(getActivity().getSupportFragmentManager(), bottomDrawerFragment.getTag());
+                return true;
             }
         });
 
@@ -183,20 +198,28 @@ public class FragmentOne extends Fragment {
         countListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                int badgeCount = 0;
                 if(listenerFlag)
                 for(int i = 0; i< profileMap.size(); i++) {
                     try {
                         HashMap map = profileMap.get(i);
                         String count = snapshot.child(map.get("KEY").toString()).child(firebaseUser.getUid()).getValue().toString();
-                        if(!count.contains("0"))
+                        if(!count.contains("0")){
+                            badgeCount += Integer.parseInt(count);
                             map.put("COUNT", count);
+                        }
                         profileMap.set(i, map);
                         searchMap.set(i, map);
                         ListViewUpdater();
-                    }
-                    catch (Exception e){
+
+                        if(badgeCount != 0)
+                            Objects.requireNonNull(tabLayout.getTabAt(0)).getOrCreateBadge().setNumber(badgeCount);
+
+                        else
+                            Objects.requireNonNull(tabLayout.getTabAt(0)).removeBadge();
 
                     }
+                    catch (Exception e){}
                 }
                 ListViewSorter();
             }

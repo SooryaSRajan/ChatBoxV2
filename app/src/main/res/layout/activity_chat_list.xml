@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:windowSoftInputMode="adjustResize"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/gradient_background"
@@ -56,11 +57,21 @@
         android:layout_width="wrap_content"
         android:layout_height="?attr/actionBarSize"/>
 
+    <ImageButton
+        android:id="@+id/scroll_chat_to_bottom"
+        android:background="@color/colorTransparent"
+        android:src="@drawable/ic_baseline_keyboard_arrow_down_24"
+        android:layout_margin="10dp"
+        android:layout_above="@+id/message_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
     <RelativeLayout
+        android:background="@color/colorTransparent"
         android:id="@+id/status"
         android:layout_width="wrap_content"
         android:layout_above="@+id/message_button"
-        android:layout_marginRight="3dp"
+        android:layout_marginEnd="3dp"
         android:layout_alignParentEnd="true"
         android:layout_height="wrap_content">
         <TextView
@@ -68,15 +79,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="13sp"
-            android:textColor="@color/colorWhite"
-            android:padding="5dp" />
+            android:textColor="@color/colorWhite" />
+
         <TextView
             android:id="@+id/seen_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="13sp"
             android:textColor="@color/colorWhite"
-            android:padding="5dp"/>
+            android:textSize="13sp" />
     </RelativeLayout>
 
     <EditText
@@ -147,25 +157,25 @@
         </RelativeLayout>
 
         <RelativeLayout
-            android:layout_toLeftOf="@+id/recorder_option_relative_layout"
+            android:layout_toStartOf="@+id/recorder_option_relative_layout"
             android:id="@+id/recorder_play_pause_layout"
             android:layout_centerVertical="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content">
 
             <ImageButton
-                android:layout_marginRight="7dp"
+                android:layout_marginEnd="7dp"
                 android:id="@+id/play_recording"
                 android:background="@color/colorTransparent"
-                android:src="@drawable/ic_baseline_play_arrow_24"
+                android:src="@drawable/bottom_play"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
 
             <ImageButton
-                android:layout_marginRight="7dp"
+                android:layout_marginEnd="7dp"
                 android:id="@+id/pause_recording"
                 android:background="@color/colorTransparent"
-                android:src="@drawable/ic_baseline_pause_24"
+                android:src="@drawable/bottom_pause"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
         </RelativeLayout>

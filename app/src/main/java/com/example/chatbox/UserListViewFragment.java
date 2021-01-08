@@ -65,7 +65,6 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        fragmentOne = new FragmentOne();
         fragmentTwo = new FragmentTwo();
         fragmentThree = new FragmentThree();
         setHasOptionsMenu(true);
@@ -87,6 +86,7 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
         PageAdapter adapter = new PageAdapter(fragmentManager, 0);
         TabLayout tabLayout = view.findViewById(R.id.tab_layout);
 
+        fragmentOne = new FragmentOne(tabLayout);
 
         adapter.addFragment(fragmentOne, "Friends");
         adapter.addFragment(fragmentTwo, "Requests");
@@ -165,6 +165,21 @@ public class UserListViewFragment extends Fragment implements SwipeRefreshLayout
         viewPager.setAdapter(adapter);
         tabLayout.setupWithViewPager(viewPager);
         viewPager.setOffscreenPageLimit(3);
+
+        /**
+         * Tab badge is controlled here
+         */
+        FirebaseDatabase.getInstance().getReference("UNREAD COUNT").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
 
         final ArrayList<String> userList = new ArrayList<>();
         final DatabaseReference reference = FirebaseDatabase.getInstance().getReference("USER ACCOUNT CHANGE");

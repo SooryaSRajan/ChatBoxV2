@@ -76,6 +76,7 @@ int flag1, flag2;
                     Toast.makeText(LoginActivity.this, "Password Field Empty", Toast.LENGTH_SHORT).show();
                     flag2++;
                 }
+
                 if(flag1 == 0 && flag2 == 0){
                     signIn.setVisibility(View.INVISIBLE);
                     loginUser(mEmail, mPassword);

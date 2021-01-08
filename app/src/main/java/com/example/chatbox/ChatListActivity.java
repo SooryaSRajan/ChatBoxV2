@@ -11,8 +11,10 @@ import androidx.recyclerview.widget.LinearSmoothScroller;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.media.MediaPlayer;
@@ -22,6 +24,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.Editable;
@@ -50,6 +53,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.storage.FirebaseStorage;
@@ -87,21 +91,20 @@ import static com.example.chatbox.Constants.USER_NAME;
 
 public class ChatListActivity extends AppCompatActivity {
 
+    final LinearLayoutManager manager = new LinearLayoutManager(this);
     private Toolbar toolbar;
     private List<MessageData> messageData = null;
-    private ImageButton backButton;
+    private ImageButton backButton, scrollToBottomButton;
     private FirebaseDatabase database = FirebaseDatabase.getInstance();
     private DatabaseReference countRef = database.getReference().child("UNREAD COUNT"), ref = database.getReference(),
-            ref2 = database.getReference(), onlineRef = database.getReference(), refMain = database.getReference().child("UNREAD MESSAGE"),
+            ref2 = database.getReference(), onlineRef = database.getReference(), refMain = database.getReference().child("NEW MESSAGE"),
             refToken;
-    private ValueEventListener UnsentReceiverListener, UnsentSelfListener, TokenListener, ConcurrentTokensListener,
-            CountListener, TypingListener, OnlineListener, MessageReceiverListener, ConcurrentMessageReceiverListener, ConcurrentUserNodeListener;
+    private ValueEventListener UnsentReceiverListener, UnsentSelfListener,
+            CountListener, TypingListener, OnlineListener, MessageReceiverListener;
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
     public static ListView listView;
     private ArrayList<HashMap> mList = new ArrayList<>();
     private Set<String> mKeyList = new HashSet<>();
-    private ArrayList<String> tokenList = new ArrayList<>();
-   // private static ChatAdapter adapter;
     private EditText chatText;
     private ImageButton mSend;
     private String mMessage;
@@ -128,9 +131,28 @@ public class ChatListActivity extends AppCompatActivity {
     private String finalRecorderPath = null, recordedFileName = null;
     private int playPauseStateFlag = 0, recorderStateFlag = 0;
     private float MILLISECONDS_PER_INCH = 10;
-
+    private boolean isBoundToService = false;
     private ChatRecyclerAdapter adapter;
     private RecyclerView recyclerView;
+    private Query query;
+
+    ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
+            mService = binder.getLocalService();
+            isBoundToService = true;
+            adapter.setMusicService(mService);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isBoundToService = false;
+
+        }
+    };
+
+    private MusicService mService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,6 +161,8 @@ public class ChatListActivity extends AppCompatActivity {
 
         recorderDashboard = findViewById(R.id.recorder_dashboard);
         recorderDashboard.setVisibility(View.GONE);
+        scrollToBottomButton = findViewById(R.id.scroll_chat_to_bottom);
+        scrollToBottomButton.setVisibility(View.GONE);
 
         recorderButton = findViewById(R.id.recorder_button);
         recorderBack = findViewById(R.id.exit_recorder);
@@ -367,7 +391,7 @@ public class ChatListActivity extends AppCompatActivity {
         });
 
         appToken = FirebaseInstanceId.getInstance().getToken();
-        ref.child("CONCURRENT USERS").child(mAuth.getUid()).child(appToken).setValue("TOKEN");
+     //   ref.child("CONCURRENT USERS").child(mAuth.getUid()).child(appToken).setValue("TOKEN");
 
          storage = FirebaseStorage.getInstance();
          mDataRef = storage.getReferenceFromUrl("gs://chat-box-v2.appspot.com");
@@ -388,10 +412,43 @@ public class ChatListActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.chat_recycler_view);
         adapter = new ChatRecyclerAdapter(mList, getWindow().getDecorView().getRootView(), this);
         recyclerView.setHasFixedSize(true);
-        final LinearLayoutManager manager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(manager);
         manager.setStackFromEnd(true);
         recyclerView.setAdapter(adapter);
+
+        Intent binderIntent = new Intent(this, MusicService.class);
+        bindService(binderIntent, serviceConnection, BIND_AUTO_CREATE);
+
+        scrollToBottomButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LinearSmoothScroller linearSmoothScroller = new LinearSmoothScroller(recyclerView.getContext()) {
+
+                    @Override
+                    protected float calculateSpeedPerPixel(DisplayMetrics displayMetrics) {
+                        return MILLISECONDS_PER_INCH / displayMetrics.densityDpi;
+                    }
+                };
+
+                linearSmoothScroller.setTargetPosition(adapter.getItemCount());
+                manager.startSmoothScroll(linearSmoothScroller);
+            }
+        });
+
+        recyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
+            @Override
+            public void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+                Log.e(TAG, "onScrollChange: Scrolled" );
+                Log.e(TAG, "onScrollChange: x: " + scrollX + " y " + scrollY + " old x" + oldScrollX + " old y " + oldScrollY);
+                if(oldScrollY > 0){
+                    scrollToBottomButton.setVisibility(View.VISIBLE);
+                }
+                else{
+                    if(isLastVisible())
+                    scrollToBottomButton.setVisibility(View.GONE);
+                }
+            }
+        });
 
         adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
             @Override
@@ -415,14 +472,11 @@ public class ChatListActivity extends AppCompatActivity {
 
         ref.child("UNSENT MESSAGE KEY").child(mAuth.getUid()).child(userKey).addValueEventListener(UnsentReceiverListener);
         ref.child("UNSENT MESSAGE KEY").child(userKey).child(mAuth.getUid()).addValueEventListener(UnsentSelfListener);
-        ref.child("CONCURRENT USERS").child(mAuth.getUid()).addValueEventListener(ConcurrentUserNodeListener);
-        ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(appToken).child(userKey).addValueEventListener(ConcurrentTokensListener);
 
 
         try {
             refToken = database.getReference().child("TOKENS").child(userKey);
             database.getReference().child("TOKENS").child(mAuth.getUid()).setValue(FirebaseInstanceId.getInstance().getToken());
-            refToken.addValueEventListener(TokenListener);
 
         } catch (Exception e) {
             Log.e(TAG, "onCreate: Token " + e.toString());
@@ -450,210 +504,6 @@ public class ChatListActivity extends AppCompatActivity {
             }
         });
 
-/*
-        AlertDialog.Builder builder = new AlertDialog.Builder(ChatListActivity.this);
-        final View builderView = getLayoutInflater().inflate(R.layout.unsend_message_layout, null);
-        builder.setView(builderView);
-        final android.app.AlertDialog alertDialog = builder.create();
-
-        builderView.findViewById(R.id.unsend_message).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                alertDialog.dismiss();
-            }
-        });
-*/
-        final Handler handler = new Handler(Looper.getMainLooper());
-        /*
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
-                Log.e(TAG, "onItemClick: List clicked");
-                if (mList.get(position).get("TYPE").toString().contains("IMAGE")) {
-                    Log.e(TAG, "onItemClick: Image list");
-                    AsyncTask.execute(new Runnable() {
-                        @Override
-                        public void run() {
-
-                            Log.e(TAG, "onItemClick: thread started");
-                            FileInputStream fileInputStream;
-                            Bitmap bitmap;
-
-                            try {
-                                fileInputStream = ChatListActivity.this.openFileInput(mList.get(position).get("MESSAGE").toString());
-                                bitmap = BitmapFactory.decodeStream(fileInputStream);
-                                final Bitmap finalBitmap = bitmap;
-
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        try {
-                                            Log.e(TAG, "onItemClick: Inside post");
-                                            AlertDialog.Builder builder = new AlertDialog.Builder(ChatListActivity.this);
-                                            final View builderView = getLayoutInflater().inflate(R.layout.message_image_layout_enlarged, null);
-                                            ImageView imageView = builderView.findViewById(R.id.message_image_view);
-                                            imageView.setImageBitmap(finalBitmap);
-                                            builder.setView(builderView);
-                                            final android.app.AlertDialog alertDialog = builder.create();
-                                            alertDialog.show();
-
-                                        } catch (Exception e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                });
-
-                                Log.e(TAG, "GetImageBitmap: Bitmap");
-                            } catch (FileNotFoundException e) {
-                                e.printStackTrace();
-                                Log.e(TAG, "run: File not found" );
-                            }
-                        }
-                    });
-                }
-            }
-        });
-
-         */
-/*
-        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                PopupMenu popupMenu = new PopupMenu(ChatListActivity.this, view);
-                popupMenu.getMenuInflater().inflate(R.menu.chat_context_menu, popupMenu.getMenu());
-                onLongClickPosition = position;
-
-                try {
-                    if (mList.get(position).get("FROM").toString().contains(mAuth.getUid())) {
-                        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                            @Override
-                            public boolean onMenuItemClick(MenuItem item) {
-                                if (onLongClickPosition == mList.size()) {
-                                    --onLongClickPosition;
-                                }
-
-                                if (mList.size() == 0)
-                                    Log.e(TAG, "onMenuItemClick: Mlist empty");
-
-                                final String keys = mList.get(onLongClickPosition).get("KEY").toString();
-                                if (item.getItemId() == R.id.unsend_message_menu) {
-                                    Log.e(TAG, "onClick: " + keys);
-                                    final String finalKeys = keys;
-                                    ref.child("NEW MESSAGE").child(keys).removeValue(new DatabaseReference.CompletionListener() {
-                                        @Override
-                                        public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference refer) {
-
-                                            ref.child("CONCURRENT MESSAGE").child(mAuth.getUid()).child(userKey).child(keys).removeValue();
-                                            refMain.child(finalKeys).removeValue();
-                                            mList.remove(onLongClickPosition);
-                                            mKeyList.remove(keys);
-                                            adapter.notifyDataSetChanged();
-
-                                            AsyncTask.execute(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    try {
-                                                        MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
-                                                        database.dao().deleteTuple(finalKeys);
-                                                    } catch (Exception e) {
-
-                                                    }
-                                                }
-                                            });
-
-                                            ref.child("UNSENT MESSAGE KEY").child(userKey).child(mAuth.getUid()).child(finalKeys).setValue("ADDED");
-
-                                            Log.e(TAG, "onComplete: " + mList.size() + " " + onLongClickPosition);
-
-                                            try {
-                                                if (mList.size() == onLongClickPosition) {
-                                                    if (mList.get(onLongClickPosition - 1).get("TYPE").toString().contains("MESSAGE")) {
-                                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
-                                                        ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
-                                                    }
-                                                    else if(mList.get(onLongClickPosition - 1).get("TYPE").toString().contains("IMAGE")){
-                                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("you sent an image");
-                                                        ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("sent you an image");
-                                                    }
-                                                }
-                                            } catch (Exception e) {
-                                                if (mList.size() == 0) {
-                                                    ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("");
-                                                    ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("");
-                                                }
-                                            }
-
-                                        }
-                                    });
-                                }
-                                if (item.getItemId() == R.id.remove_local_message) {
-                                    mList.remove(onLongClickPosition);
-                                    mKeyList.remove(keys);
-                                    try {
-                                        if (mList.size() == onLongClickPosition) {
-                                            if (mList.get(onLongClickPosition - 1).get("TYPE").toString().contains("MESSAGE")) {
-                                                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(onLongClickPosition - 1).get("MESSAGE").toString());
-                                            }
-                                            else if(mList.get(onLongClickPosition - 1).get("TYPE").toString().contains("IMAGE")){
-                                                ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("you sent an image");
-                                            }
-                                        }
-                                    } catch (Exception e) {
-                                        if (mList.size() == 0) {
-                                            ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("");
-                                        }
-                                    }
-                                    adapter.notifyDataSetChanged();
-
-                                    AsyncTask.execute(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            try {
-                                                MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
-                                                database.dao().deleteLocal(keys);
-                                            } catch (Exception e) {
-
-                                            }
-                                        }
-                                    });
-
-                                }
-
-                                if (item.getItemId() == R.id.copy_local_message) {
-                                    android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getApplication().getSystemService(Context.CLIPBOARD_SERVICE);
-                                    android.content.ClipData clip = android.content.ClipData.newPlainText("Copied Text 1", mList.get(onLongClickPosition).get("MESSAGE").toString());
-                                    clipboard.setPrimaryClip(clip);
-                                }
-                                return true;
-                            }
-                        });
-                        popupMenu.show();
-                    } else {
-                        PopupMenu menu = new PopupMenu(ChatListActivity.this, view);
-                        menu.getMenuInflater().inflate(R.menu.chat_copy_menu, menu.getMenu());
-
-                        menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                            @Override
-                            public boolean onMenuItemClick(MenuItem item) {
-                                if (item.getItemId() == R.id.copy_local_other_message) {
-                                    android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getApplication().getSystemService(Context.CLIPBOARD_SERVICE);
-                                    android.content.ClipData clip = android.content.ClipData.newPlainText("Copied Text 2", mList.get(onLongClickPosition).get("MESSAGE").toString());
-                                    clipboard.setPrimaryClip(clip);
-                                }
-                                return true;
-                            }
-                        });
-                        menu.show();
-                    }
-
-                } catch (Exception e) {
-
-                }
-                return true;
-            }
-        });
-*/
         mOnlineStatus = findViewById(R.id.online_status);
         mTypingStatus = findViewById(R.id.typing_status);
         mSeenStatus = findViewById(R.id.seen_status);
@@ -735,7 +585,7 @@ public class ChatListActivity extends AppCompatActivity {
             public void onClick(View v) {
                 mMessage = chatText.getText().toString();
                 if (!mMessage.isEmpty()) {
-                    messageMap(mMessage, 0);
+                    writeToFirebase(messageMap(mMessage, 0), intent.getStringExtra("KEY"), 0);
                     chatText.setText("");
                 }
             }
@@ -785,15 +635,15 @@ public class ChatListActivity extends AppCompatActivity {
         mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
         mediaRecorder.setOutputFile(finalRecorderPath);
     }
-
     private void uploadMediaRecording(String fileName, String filePath){
-        messageMap(fileName, 2);
+        final HashMap map = messageMap(fileName, 2);
         Uri uriAudio = Uri.fromFile(new File(filePath).getAbsoluteFile());
         final StorageReference ref = storage.getReference().child("recording/" + fileName);
         ref.putFile(uriAudio).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                 Toast.makeText(ChatListActivity.this, "recording uploaded!", Toast.LENGTH_SHORT).show();
+                writeToFirebase(map, getIntent().getStringExtra("KEY"), 2);
             }
         });
     }
@@ -822,7 +672,6 @@ public class ChatListActivity extends AppCompatActivity {
             map.put("TYPE", "RECORDING");
             writeNotification("Has sent you a recording", USER_NAME);
         }
-        writeToFirebase(map, intent.getStringExtra("KEY"), flag);
         return map;
     }
 
@@ -857,15 +706,16 @@ public class ChatListActivity extends AppCompatActivity {
         if(flag == 0){
             mList.add(temp);
             adapter.notifyItemInserted(mList.size() - 1);
+            recyclerView.setItemViewCacheSize(mList.size());
         }
-        ref.child("NEW MESSAGE").push().setValue(temp, new DatabaseReference.CompletionListener() {
+        ref.child("KEY GENERATOR").push().setValue(0, new DatabaseReference.CompletionListener() {
             @Override
             public void onComplete(@Nullable DatabaseError databaseError, @NonNull final DatabaseReference databaseReference) {
+                mKeyList.add(databaseReference.getKey());
                 Log.e(TAG, "onComplete: " + databaseReference);
                 ref.child("PROFILE ORDER").child(mAuth.getUid()).child(ID).setValue(getDateTime());
                 ref.child("PROFILE ORDER").child(ID).child(mAuth.getUid()).setValue(getDateTime());
                 ref.child("UNREAD COUNT").child(mAuth.getUid()).child(ID).setValue(Integer.toString(++mCount));
-                mKeyList.add(databaseReference.getKey());
                 if(flag == 0){
                     ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(temp.get("MESSAGE").toString());
                     ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue(temp.get("MESSAGE").toString());
@@ -880,28 +730,24 @@ public class ChatListActivity extends AppCompatActivity {
                     ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("you sent a recording");
                     ref.child("LAST MESSAGE").child(userKey).child(mAuth.getUid()).setValue("sent you a recording");
                 }
-
-                ref.child("UNREAD MESSAGE").child(databaseReference.getKey()).setValue(temp);
+                ref.child("NEW MESSAGE").child(databaseReference.getKey()).setValue(temp);
                 temp.put("KEY", databaseReference.getKey());
-                AsyncTask.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        for (String keys : tokenList)
-                            ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(keys).child(userKey).child(databaseReference.getKey()).setValue("CONCURRENT KEY");
-                    }
-                });
+                ref.child("MESSAGE KEYS").child(mAuth.getUid()).child(userKey).child(Objects.requireNonNull(databaseReference.getKey())).setValue("KEY");
+                ref.child("UNREAD MESSAGE").child(Objects.requireNonNull(databaseReference.getKey())).setValue(temp);
+
                 if(flag == 0){
                     mList.remove(mList.size() - 1);
                     mList.add(temp);
                     adapter.notifyItemChanged(mList.size()-1);
+                    recyclerView.setItemViewCacheSize(mList.size());
                 }
 
                 else if(flag == 2){
                     mList.add(temp);
                     adapter.notifyItemInserted(mList.size()-1);
+                    recyclerView.setItemViewCacheSize(mList.size());
                 }
-
-                mKeyList.add(databaseReference.getKey());
+                ref.child("KEY GENERATOR").child(databaseReference.getKey()).removeValue();
                 AsyncMessage(temp, databaseReference.getKey());
             }
         });
@@ -921,7 +767,7 @@ public class ChatListActivity extends AppCompatActivity {
             public void run() {
                 super.run();
                 try {
-                    TimeUnit.SECONDS.sleep(2);
+                    TimeUnit.SECONDS.sleep(3);
                     ref.child("TYPING").child(Objects.requireNonNull(mAuth.getUid()))
                             .child(Objects.requireNonNull(intent.getStringExtra("KEY"))).setValue("NOT");
 
@@ -957,14 +803,16 @@ public class ChatListActivity extends AppCompatActivity {
             final byte[] byteArray = stream.toByteArray();
             final String name = mAuth.getUid() + getDateTime() + (new Random().nextInt());
             saveImage(ChatListActivity.this, bitmap, name);
-            mList.add(messageMap(name, 1));
+            final HashMap map = messageMap(name, 1);
+            mList.add(map);
             adapter.notifyItemInserted(mList.size() - 1);
-     //       adapter.notifyDataSetChanged();
+            recyclerView.setItemViewCacheSize(mList.size());
             final StorageReference ref = storage.getReference().child("images/message/" + name);
             ref.putBytes(byteArray)
                     .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            writeToFirebase(map, getIntent().getStringExtra("KEY"), 1);
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
@@ -989,7 +837,6 @@ public class ChatListActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        //ref.child("ONLINE").child(FirebaseAuth.getInstance().getUid()).setValue("OFFLINE");
         mCount = 0;
     }
 
@@ -1000,15 +847,18 @@ public class ChatListActivity extends AppCompatActivity {
 
         ref.child("UNSENT MESSAGE KEY").child(mAuth.getUid()).child(userKey).removeEventListener(UnsentReceiverListener);
         ref.child("UNSENT MESSAGE KEY").child(userKey).child(mAuth.getUid()).removeEventListener(UnsentSelfListener);
-        refToken.removeEventListener(TokenListener);
         countRef.removeEventListener(CountListener);
         ref2.removeEventListener(TypingListener);
         onlineRef.removeEventListener(OnlineListener);
         refMain.removeEventListener(MessageReceiverListener);
-        ref.child("CONCURRENT USERS").child(mAuth.getUid()).removeEventListener(ConcurrentUserNodeListener);
-        ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(appToken).child(userKey).removeEventListener(ConcurrentTokensListener);
 
-       // adapter.stopAudioPlayer();
+        if(query != null){
+            query.removeEventListener(MessageReceiverListener);
+        }
+
+        else{
+            refMain.removeEventListener(MessageReceiverListener);
+        }
 
         try{
             if(mediaPlayer != null){
@@ -1034,7 +884,6 @@ public class ChatListActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // ref.child("ONLINE").child(FirebaseAuth.getInstance().getUid()).setValue("ONLINE");
         countRef.child(userKey).child(mAuth.getUid()).setValue("0");
         database.getReference().child("TOKENS").child(mAuth.getUid()).setValue(FirebaseInstanceId.getInstance().getToken());
 
@@ -1050,7 +899,8 @@ public class ChatListActivity extends AppCompatActivity {
                 mList.clear();
                 for (int i = 0; i < messageData.size(); i++) {
                     MessageData data = messageData.get(i);
-                    if (data.mFrom.contains(userKey) || data.mTo.contains(userKey) && data.mMessage != null) {
+                    mKeyList.add(data.key);
+                    if ((data.mFrom.contains(userKey) || data.mTo.contains(userKey)) && data.mMessage != null ) {
                         HashMap map = new HashMap();
                         Log.e(TAG, "run: " + data.mMessage);
                         if (data.mFrom.contains(userKey))
@@ -1066,8 +916,6 @@ public class ChatListActivity extends AppCompatActivity {
                         map.put("KEY", data.key);
                         map.put("TYPE", data.type);
                         mList.add(map);
-                        mKeyList.add(data.key);
-
                     }
                 }
 
@@ -1083,8 +931,16 @@ public class ChatListActivity extends AppCompatActivity {
                         });
                         Log.e(TAG, "run: Adapter called");
                         adapter.notifyDataSetChanged();
-                        refMain.addValueEventListener(MessageReceiverListener);
+                        recyclerView.setItemViewCacheSize(mList.size());
 
+                        if(!mList.isEmpty()){
+                            query = refMain.orderByKey().startAt(mList.get(mList.size()-1).get("KEY").toString());
+                            query.addValueEventListener(MessageReceiverListener);
+                        }
+
+                        else{
+                            refMain.addValueEventListener(MessageReceiverListener);
+                        }
                     }
                 });
 
@@ -1178,6 +1034,7 @@ public class ChatListActivity extends AppCompatActivity {
                             mList.remove(x);
                             mKeyList.remove(snap.getKey());
                             adapter.notifyItemRemoved(x);
+                            recyclerView.setItemViewCacheSize(mList.size());
                             Log.e(TAG, "onDataChange: Removable keys" + snap.getKey());
                             AsyncTask.execute(new Runnable() {
                                 @Override
@@ -1194,7 +1051,6 @@ public class ChatListActivity extends AppCompatActivity {
 
                     }
                 }
-                ref.child("UNSENT MESSAGE KEY").child(mAuth.getUid()).child(userKey).setValue("0");
             }
 
             @Override
@@ -1215,6 +1071,7 @@ public class ChatListActivity extends AppCompatActivity {
                             mList.remove(x);
                             mKeyList.remove(snap.getKey());
                             adapter.notifyItemRemoved(x);
+                            recyclerView.setItemViewCacheSize(mList.size());
                             AsyncTask.execute(new Runnable() {
                                 @Override
                                 public void run() {
@@ -1240,19 +1097,6 @@ public class ChatListActivity extends AppCompatActivity {
         };
 
         //Token
-        TokenListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists())
-                token = snapshot.getValue().toString();
-                Log.e(TAG, "Token: " + appToken);
-                }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        };
 
         //Name
         CountListener = new ValueEventListener() {
@@ -1321,63 +1165,59 @@ public class ChatListActivity extends AppCompatActivity {
 
             }
         };
-
         //RefMain Message Listener
         MessageReceiverListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
                     try {
-                        removeKey.clear();
+                        Log.e(TAG, "onDataChange: " + snapshot.getChildren() );
                         for (final DataSnapshot snap : snapshot.getChildren()) {
-                            if (snap.child("TO").getValue().toString().contains(mAuth.getUid()) &&
-                                    snap.child("FROM").getValue().toString().contains(userKey)) {
+                            if ((snap.child("TO").getValue().toString().contains(mAuth.getUid()) &&
+                                    snap.child("FROM").getValue().toString().contains(userKey)) ||
+                                    (snap.child("FROM").getValue().toString().contains(mAuth.getUid()) &&
+                                            snap.child("TO").getValue().toString().contains(userKey))) {
                                 if (!mKeyList.contains(snap.getKey())) {
+                                    Log.e(TAG, "onDataChange: Key order: " + snap.getKey() );
+
                                     HashMap map = new HashMap();
                                     map.put("KEY", snap.getKey());
-                                    map.put("NAME", userName);
-                                    map.put("MESSAGE", snap.child("MESSAGE").getValue());
-                                    map.put("FROM", snap.child("FROM").getValue());
-                                    map.put("TO", snap.child("TO").getValue());
+                                    map.put("NAME", snap.child("NAME").getValue().toString());
+                                    map.put("MESSAGE", snap.child("MESSAGE").getValue().toString());
+                                    map.put("FROM", snap.child("FROM").getValue().toString());
+                                    map.put("TO", snap.child("TO").getValue().toString());
                                     map.put("TIME", snap.child("TIME").getValue().toString());
                                     map.put("TYPE", snap.child("TYPE").getValue().toString());
-                                    mList.add(map);
-                                    mKeyList.add(snap.getKey());
-                                    adapter.notifyItemInserted(mList.size() -1);
+                                        mList.add(map);
+                                        mKeyList.add(snap.getKey());
+                                        adapter.notifyItemInserted(mList.size() -1);
 
-                                    /*
-                                    Collections.sort(mList, new Comparator<HashMap>() {
-                                        @Override
-                                        public int compare(HashMap o1, HashMap o2) {
-                                            return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
-                                        }
-                                    });
-                                    */
+                                    query.removeEventListener(MessageReceiverListener);
+                                    query = refMain.orderByKey().startAt(mList.get(mList.size()-1).get("KEY").toString());
+                                    query.addValueEventListener(MessageReceiverListener);
 
-                                    AsyncTask.execute(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            for (String keys : tokenList)
-                                                ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(keys).child(userKey).child(snap.getKey()).setValue("CONCURRENT KEY");
-                                        }
-                                    });
+                                    recyclerView.setItemViewCacheSize(mList.size());
+                                        if(map.get("TYPE").toString().contains("MESSAGE"))
+                                            ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size() - 1).get("MESSAGE").toString());
 
-        //                            adapter.notifyDataSetChanged();
+                                        else if(map.get("TYPE").toString().contains("IMAGE"))
+                                            ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("sent you an image");
 
-                                    if(map.get("TYPE").toString().contains("MESSAGE"))
-                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue(mList.get(mList.size() - 1).get("MESSAGE").toString());
+                                        else if(map.get("TYPE").toString().contains("RECORDING"))
+                                            ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("sent you a recording");
 
-                                    else if(map.get("TYPE").toString().contains("IMAGE"))
-                                        ref.child("LAST MESSAGE").child(mAuth.getUid()).child(userKey).setValue("sent you an image");
+                                        Log.e(TAG, "onDataChange: Senders Message" + snap.getKey());
+                                        AsyncMessage(map, snap.getKey());
 
-                                    Log.e(TAG, "onDataChange: Senders Message" + snap.getKey());
-                                    AsyncMessage(map, snap.getKey());
-                                    removeKey.add(snap.getKey());
+                                }
+                                else{
+                                 //   break;
+                                    Log.e(TAG, "onDataChange: Key not matched: " + snap.getKey() );
                                 }
                             }
                         }
+                        query = refMain.orderByKey().startAt(mList.get(mList.size()-1).get("KEY").toString());
                         countRef.child(userKey).child(mAuth.getUid()).setValue("0");
-                        removeChild(removeKey);
                     } catch (Exception e) {
                         Log.e(TAG, "onDataChange: " + e.toString());
                     }
@@ -1390,111 +1230,7 @@ public class ChatListActivity extends AppCompatActivity {
             }
         };
 
-        ConcurrentUserNodeListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for(DataSnapshot snap : snapshot.getChildren()){
-                    if(snap!=null) {
-                        Log.e(TAG, "onDataChange: Token " + snap.getKey());
-                        if(!Objects.requireNonNull(snap.getKey()).contains(appToken)){
-                            tokenList.add(snap.getKey());
-                            Log.e(TAG, "onDataChange: Added token: " + snap.getKey() );
-                        }
-                    }
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        };
-
-        ConcurrentTokensListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                concurrentMessageKeys.clear();
-                for(DataSnapshot snap : snapshot.getChildren()){
-                    Log.e(TAG, "onDataChange: Keys" + snap.getKey());
-                    Toast.makeText(ChatListActivity.this, snap.getKey(), Toast.LENGTH_SHORT).show();
-                    concurrentMessageKeys.add(snap.getKey());
-                }
-                ConcurrentMessageRetriever(concurrentMessageKeys);
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        };
-
-        ConcurrentMessageReceiverListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull final DataSnapshot snapshot) {
-                final HashMap map = new HashMap();
-                map.put("NAME", USER_NAME);
-                map.put("KEY", concurrentFilterKey);
-                map.put("FROM", snapshot.child("FROM").getValue().toString());
-                map.put("TO", snapshot.child("TO").getValue().toString());
-                map.put("TIME", snapshot.child("TIME").getValue().toString());
-                map.put("MESSAGE", snapshot.child("MESSAGE").getValue().toString());
-                map.put("TYPE", snapshot.child("TYPE").getValue().toString());
-                mList.add(map);
-                mKeyList.add(concurrentFilterKey);
-
-                Collections.sort(mList, new Comparator<HashMap>() {
-                    @Override
-                    public int compare(HashMap o1, HashMap o2) {
-                        return o1.get("TIME").toString().compareTo(o2.get("TIME").toString());
-                    }
-                });
-                 adapter.notifyItemInserted(mList.size() -1 );
-      //          adapter.notifyDataSetChanged();
-
-                Log.e(TAG, "onDataChange: AsyncSingleValueListener");
-                AsyncTask.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            final MessageDatabase database = MessageDatabase.getInstance(ChatListActivity.this);
-                            MessageData dataObject = new MessageData(concurrentFilterKey,
-                                    snapshot.child("FROM").getValue().toString(),
-                                    snapshot.child("TO").getValue().toString(),
-                                    snapshot.child("TIME").getValue().toString(),
-                                    snapshot.child("MESSAGE").getValue().toString(),
-                                    snapshot.child("TYPE").getValue().toString());
-                            database.dao().InsertMessage(dataObject);
-                            Log.e(TAG, "run: Added to DB");
-                        } catch (Exception e) {
-                            Log.e(TAG, "onDataChange: Database error" + e.toString());
-                        }
-                    }
-                });
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        };
-
     }
-
-    void ConcurrentMessageRetriever(final ArrayList<String> concurrentMessageKeys){
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                for(String mKey : concurrentMessageKeys){
-                    concurrentFilterKey = mKey;
-                    if(!mKeyList.contains(mKey)) {
-                        ref.child("NEW MESSAGE").child(mKey).addListenerForSingleValueEvent(ConcurrentMessageReceiverListener);
-                    }
-                    ref.child("CONCURRENT TOKENS").child(mAuth.getUid()).child(appToken).child(userKey).child(mKey).removeValue();
-                }
-
-            }
-        });
-    }
-
     void saveImage(Context context, Bitmap bitmap, String name){
         try {
             FileOutputStream fileOutputStream = context.openFileOutput(name, Context.MODE_PRIVATE);
@@ -1508,7 +1244,15 @@ public class ChatListActivity extends AppCompatActivity {
 
     }
 
+    boolean isLastVisible() {
+        int visibleItemPosition = manager.findLastCompletelyVisibleItemPosition();
+        int numberOfItems = mList.size();
+        return (visibleItemPosition >= numberOfItems - 1);
+    }
 
-
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
 }
 

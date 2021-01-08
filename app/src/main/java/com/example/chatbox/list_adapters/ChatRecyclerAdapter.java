@@ -8,7 +8,9 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -22,13 +24,11 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.example.chatbox.ChatListActivity;
 import com.example.chatbox.MessageDatabase.MessageDatabase;
+import com.example.chatbox.MusicService;
 import com.example.chatbox.R;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.snackbar.Snackbar;
@@ -42,6 +42,7 @@ import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -55,6 +56,7 @@ import java.util.Objects;
 
 public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
+    final Handler handler = new Handler();
     private FirebaseAuth mAuth = FirebaseAuth.getInstance();
     private final int TYPE_MESSAGE_USER = 0;
     private final int TYPE_MESSAGE_OTHER = 1;
@@ -74,6 +76,14 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     private String userId;
     private ValueEventListener ConcurrentUserNodeListener;
     private String TAG = "ChatRecyclerAdapter";
+    private MusicService mService;
+    private String finalRecorderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() +
+            "/";
+    private int audioPlayerPosition = -1;
+
+    public void setMusicService(MusicService musicService) {
+        this.mService = musicService;
+    }
 
     private ArrayList<HashMap> mapArrayList = new ArrayList<>();
     private ArrayList<String> tokenList = new ArrayList<>();
@@ -136,17 +146,16 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 @Override
                 public boolean onLongClick(View view) {
                     if(snackPosition == -1){
-                        snackPosition = (int) itemView.getTag();
+                        snackPosition = getAdapterPosition();
                         snackBarSelectedListPosition = getAdapterPosition();
                         itemView.setBackgroundColor(Color.argb(42, 0, 250, 230));
                         RemoveDashBoard();
                         snackBarUserMessage.show();
                     }
 
-                    else if(snackPosition == (int) itemView.getTag()){
+                    else if(snackPosition == getAdapterPosition()){
                         CopyMessage(snackBarSelectedListPosition);
                         itemView.setBackgroundColor(Color.argb(0,0,0,0));
-                        Toast.makeText(activity, "Message Copied", Toast.LENGTH_SHORT).show();
                         AddDashBoard();
                         snackBarUserMessage.dismiss();
                         snackPosition = -1;
@@ -160,7 +169,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if(snackPosition == (int) itemView.getTag()){
+                    if(snackPosition == getAdapterPosition()){
                         itemView.setBackgroundColor(Color.argb(0,0,0,0));
                         AddDashBoard();
                         snackBarUserMessage.dismiss();
@@ -192,17 +201,16 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 @Override
                 public boolean onLongClick(View view) {
                     if(snackPosition == -1){
-                        snackPosition = (int) itemView.getTag();
+                        snackPosition = getAdapterPosition();
                         snackBarSelectedListPosition = getAdapterPosition();
                         itemView.setBackgroundColor(Color.argb(42, 0, 250, 230));
                         RemoveDashBoard();
                         snackBarOtherMessage.show();
                     }
 
-                    else if(snackPosition == (int) itemView.getTag()){
+                    else if(snackPosition == getAdapterPosition()){
                         CopyMessage(snackBarSelectedListPosition);
                         itemView.setBackgroundColor(Color.argb(0,0,0,0));
-                        Toast.makeText(activity, "Message Copied", Toast.LENGTH_SHORT).show();
                         AddDashBoard();
                         snackBarOtherMessage.dismiss();
                         snackPosition = -1;
@@ -217,7 +225,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if(snackPosition == (int) itemView.getTag()){
+                    if(snackPosition == getAdapterPosition()){
                         snackBarSelectedListPosition = -1;
                         itemView.setBackgroundColor(Color.argb(0,0,0,0));
                         AddDashBoard();
@@ -247,7 +255,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 @Override
                 public boolean onLongClick(View view) {
                     if(snackPosition == -1){
-                        snackPosition = (int) itemView.getTag();
+                        snackPosition = getAdapterPosition();
                         snackBarSelectedListPosition = getAdapterPosition();
                         itemView.setBackgroundColor(Color.argb(42, 0, 250, 230));
                         RemoveDashBoard();
@@ -260,7 +268,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if(snackPosition == (int) itemView.getTag()){
+                    if(snackPosition == getAdapterPosition()){
                         itemView.setBackgroundColor(Color.argb(0,0,0,0));
                         AddDashBoard();
                         snackBarUserExtra.dismiss();
@@ -294,7 +302,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 @Override
                 public boolean onLongClick(View view) {
                     if(snackPosition == -1){
-                        snackPosition = (int) itemView.getTag();
+                        snackPosition = getAdapterPosition();
                         snackBarSelectedListPosition = getAdapterPosition();
                         itemView.setBackgroundColor(Color.argb(42, 0, 250, 230));
                         RemoveDashBoard();
@@ -307,7 +315,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if(snackPosition == (int) itemView.getTag()){
+                    if(snackPosition == getAdapterPosition()){
                         itemView.setBackgroundColor(Color.argb(0,0,0,0));
                         AddDashBoard();
                         snackBarOtherExtra.dismiss();
@@ -346,18 +354,72 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 public void onClick(View v) {
                     playButton.setVisibility(View.INVISIBLE);
                     pauseButton.setVisibility(View.VISIBLE);
+                    if (mService != null) {
+                        handler.removeCallbacksAndMessages(null);
+                        if(mService.getAudioPath()!=null) {
+                            if (!mService.getAudioPath().equals(finalRecorderPath + mapArrayList.get(getAdapterPosition()).get("MESSAGE").toString())) {
+                                mService.setAudioPath(finalRecorderPath + mapArrayList.get(getAdapterPosition()).get("MESSAGE").toString());
+                                mService.preparePlayer();
+                            }
+                        }
+                        else{
+                            mService.setAudioPath(finalRecorderPath + mapArrayList.get(getAdapterPosition()).get("MESSAGE").toString());
+                            mService.preparePlayer();
+                        }
 
-                    if(position != -1 && position != getAdapterPosition())
-                        notifyItemChanged(position);
+                        seekBar.setMax(mService.getMaxProgress());
+                        mService.playAudio();
+                        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                            @Override
+                            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                                if(fromUser)
+                                mService.setProgress(progress);
+                            }
 
-                    position = getAdapterPosition();
+                            @Override
+                            public void onStartTrackingTouch(SeekBar seekBar) {
 
+                            }
+
+                            @Override
+                            public void onStopTrackingTouch(SeekBar seekBar) {
+
+                            }
+                        });
+                        final Runnable mUpdateTimeTask = new Runnable() {
+                            public void run() {   // Todo
+                            seekBar.setProgress(mService.getProgressOfAudio());
+                            Log.e(TAG, "run: Progress: " + mService.getProgressOfAudio() + " Max progress: " + mService.getMaxProgress());
+                            handler.postDelayed(this, 100);
+
+                        }
+                        };
+                        mUpdateTimeTask.run();
+
+                        mService.getMediaPlayer().setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                            @Override
+                            public void onCompletion(MediaPlayer mp) {
+                                mService.setProgress(0);
+                                handler.removeCallbacks(mUpdateTimeTask);
+                                Log.e(TAG, "onCompletion: MP completed" + getAdapterPosition());
+                                notifyItemChanged(position);
+                            }
+                        });
+
+                        if (position != -1 && position != getAdapterPosition())
+                            notifyItemChanged(position);
+
+                        position = getAdapterPosition();
+                    }
                 }
             });
 
             pauseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if(mService!=null){
+                        mService.pauseAudio();
+                    }
                     playButton.setVisibility(View.VISIBLE);
                     pauseButton.setVisibility(View.INVISIBLE);
                 }
@@ -367,7 +429,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 @Override
                 public boolean onLongClick(View view) {
                     if(snackPosition == -1){
-                        snackPosition = (int) itemView.getTag();
+                        snackPosition = getAdapterPosition();
                         snackBarSelectedListPosition = getAdapterPosition();
                         itemView.setBackgroundColor(Color.argb(42, 0, 250, 230));
                         RemoveDashBoard();
@@ -380,7 +442,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if(snackPosition == (int) itemView.getTag()){
+                    if(snackPosition == getAdapterPosition()){
                         itemView.setBackgroundColor(Color.argb(0,0,0,0));
                         AddDashBoard();
                         snackBarUserExtra.dismiss();
@@ -416,18 +478,72 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 public void onClick(View v) {
                     playButton.setVisibility(View.INVISIBLE);
                     pauseButton.setVisibility(View.VISIBLE);
+                    if (mService != null) {
+                        handler.removeCallbacksAndMessages(null);
+                        if(mService.getAudioPath()!=null) {
+                            if (!mService.getAudioPath().equals(finalRecorderPath + mapArrayList.get(getAdapterPosition()).get("MESSAGE").toString())) {
+                                mService.setAudioPath(finalRecorderPath + mapArrayList.get(getAdapterPosition()).get("MESSAGE").toString());
+                                mService.preparePlayer();
+                            }
+                        }
+                        else{
+                            mService.setAudioPath(finalRecorderPath + mapArrayList.get(getAdapterPosition()).get("MESSAGE").toString());
+                            mService.preparePlayer();
+                        }
 
-                    if(position != -1 && position != getAdapterPosition())
-                        notifyItemChanged(position);
+                        seekBar.setMax(mService.getMaxProgress());
+                        mService.playAudio();
+                        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                            @Override
+                            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                                if(fromUser)
+                                    mService.setProgress(progress);
+                            }
 
-                    position = getAdapterPosition();
+                            @Override
+                            public void onStartTrackingTouch(SeekBar seekBar) {
 
+                            }
+
+                            @Override
+                            public void onStopTrackingTouch(SeekBar seekBar) {
+
+                            }
+                        });
+                        final Runnable mUpdateTimeTask = new Runnable() {
+                            public void run() {   // Todo
+                                seekBar.setProgress(mService.getProgressOfAudio());
+                                Log.e(TAG, "run: Progress: " + mService.getProgressOfAudio() + " Max progress: " + mService.getMaxProgress());
+                                handler.postDelayed(this, 100);
+
+                            }
+                        };
+                        mUpdateTimeTask.run();
+
+                        mService.getMediaPlayer().setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                            @Override
+                            public void onCompletion(MediaPlayer mp) {
+                                mService.setProgress(0);
+                                handler.removeCallbacks(mUpdateTimeTask);
+                                Log.e(TAG, "onCompletion: MP completed" + getAdapterPosition());
+                                notifyItemChanged(position);
+                            }
+                        });
+
+                        if (position != -1 && position != getAdapterPosition())
+                            notifyItemChanged(position);
+
+                        position = getAdapterPosition();
+                    }
                 }
             });
 
             pauseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if(mService!=null){
+                        mService.pauseAudio();
+                    }
                     playButton.setVisibility(View.VISIBLE);
                     pauseButton.setVisibility(View.INVISIBLE);
                 }
@@ -437,7 +553,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 @Override
                 public boolean onLongClick(View view) {
                     if(snackPosition == -1){
-                        snackPosition = (int) itemView.getTag();
+                        snackPosition = getAdapterPosition();
                         snackBarSelectedListPosition = getAdapterPosition();
                         itemView.setBackgroundColor(Color.argb(42, 0, 250, 230));
                         RemoveDashBoard();
@@ -450,7 +566,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    if(snackPosition == (int) itemView.getTag()){
+                    if(snackPosition == getAdapterPosition()){
                         itemView.setBackgroundColor(Color.argb(0,0,0,0));
                         AddDashBoard();
                         snackBarOtherExtra.dismiss();
@@ -508,16 +624,16 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     /**
      * Binds view holder and the view holder elements with values
-     * @param holder Returns current view in the recycler view
+     * @param viewHolder Returns current view in the recycler view
      * @param position Returns current view position
      */
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int position) {
         Log.e(TAG, "onBindViewHolder " );
-        holder.itemView.setTag(position);
+        final RecyclerView.ViewHolder holder = (RecyclerView.ViewHolder)viewHolder;
 
-        if((int)holder.itemView.getTag() != snackPosition){
+        if(position != snackPosition){
             holder.itemView.setBackgroundColor(Color.argb(0,0,0,0));
         }
         else{
@@ -529,6 +645,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 ((UserMessageViewHolder)holder).messageName.setText(mapArrayList.get(position).get("NAME").toString());
             } catch (Exception e) {}
             try {
+                if(mapArrayList.get(position).get("MESSAGE") != null)
                 ((UserMessageViewHolder)holder).messageText.setText(mapArrayList.get(position).get("MESSAGE").toString());
             } catch (Exception e) {}
             try {
@@ -541,6 +658,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 ((OtherMessageViewHolder)holder).messageName.setText(mapArrayList.get(position).get("NAME").toString());
             } catch (Exception e) {}
             try {
+                if(mapArrayList.get(position).get("MESSAGE") != null)
                 ((OtherMessageViewHolder)holder).messageText.setText(mapArrayList.get(position).get("MESSAGE").toString());
             } catch (Exception e) {}
             try {
@@ -549,26 +667,67 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
 
         else if(getItemViewType(position) == TYPE_IMAGE_USER){
+            ((UserImageViewHolder)holder).imageView.setImageDrawable(null);
+            ((UserImageViewHolder)holder).progressBar.setVisibility(View.VISIBLE);
             GetImageBitmap(mapArrayList.get(position).get("MESSAGE").toString(), ((UserImageViewHolder)holder).imageView, ((UserImageViewHolder)holder).progressBar);
         }
 
         else if(getItemViewType(position) == TYPE_IMAGE_OTHER){
+            ((OtherImageViewHolder)holder).imageView.setImageDrawable(null);
+            ((OtherImageViewHolder)holder).progressBar.setVisibility(View.VISIBLE);
             GetImageBitmap(mapArrayList.get(position).get("MESSAGE").toString(), ((OtherImageViewHolder)holder).imageView, ((OtherImageViewHolder)holder).progressBar);
         }
 
         else if(getItemViewType(position) == TYPE_RECORDING_USER){
-            ((UserRecordingViewHolder)holder).playButton.setVisibility(View.VISIBLE);
-            ((UserRecordingViewHolder)holder).pauseButton.setVisibility(View.INVISIBLE);
+            Log.e(TAG, "onBindViewHolder: Recording" );
+            ((UserRecordingViewHolder) holder).playButton.setVisibility(View.VISIBLE);
+            ((UserRecordingViewHolder) holder).pauseButton.setVisibility(View.INVISIBLE);
             ((UserRecordingViewHolder)holder).progressBar.setVisibility(View.INVISIBLE);
+            if(mService!= null)
+            if(mService.getMediaPlayer() != null) {
+                if (this.position == position && mService.getMediaPlayer().isPlaying()) {
+                    Log.e(TAG, "onBindViewHolder: Playing" );
+                    ((UserRecordingViewHolder) holder).playButton.setVisibility(View.INVISIBLE);
+                    ((UserRecordingViewHolder) holder).pauseButton.setVisibility(View.VISIBLE);
+                }
+                else{
+                    ((UserRecordingViewHolder)holder).progressBar.setVisibility(View.VISIBLE);
+                    ((UserRecordingViewHolder) holder).playButton.setVisibility(View.INVISIBLE);
+                    ((UserRecordingViewHolder) holder).pauseButton.setVisibility(View.INVISIBLE);
+                    CheckRecordingFile(mapArrayList.get(position).get("MESSAGE").toString(), ((UserRecordingViewHolder)holder).playButton, ((UserRecordingViewHolder)holder).pauseButton, ((UserRecordingViewHolder)holder).progressBar);
+                    Log.e(TAG, "onBindViewHolder: Not" );
+                }
+            }
+            else{
+                CheckRecordingFile(mapArrayList.get(position).get("MESSAGE").toString(), ((UserRecordingViewHolder)holder).playButton, ((UserRecordingViewHolder)holder).pauseButton, ((UserRecordingViewHolder)holder).progressBar);
+            }
+
             ((UserRecordingViewHolder)holder).seekBar.setProgress(0);
         }
 
         else if(getItemViewType(position) == TYPE_RECORDING_OTHER){
-            ((OtherRecordingViewHolder)holder).playButton.setVisibility(View.VISIBLE);
-            ((OtherRecordingViewHolder)holder).pauseButton.setVisibility(View.INVISIBLE);
+            ((OtherRecordingViewHolder) holder).playButton.setVisibility(View.VISIBLE);
+            ((OtherRecordingViewHolder) holder).pauseButton.setVisibility(View.INVISIBLE);
             ((OtherRecordingViewHolder)holder).progressBar.setVisibility(View.INVISIBLE);
+            if(mService!= null)
+                if(mService.getMediaPlayer() != null) {
+                    if (this.position == position && mService.getMediaPlayer().isPlaying()) {
+                        Log.e(TAG, "onBindViewHolder: Playing" );
+                        ((OtherRecordingViewHolder) holder).playButton.setVisibility(View.INVISIBLE);
+                        ((OtherRecordingViewHolder) holder).pauseButton.setVisibility(View.VISIBLE);
+                    }
+                    else{
+                        ((OtherRecordingViewHolder)holder).progressBar.setVisibility(View.VISIBLE);
+                        ((OtherRecordingViewHolder) holder).playButton.setVisibility(View.INVISIBLE);
+                        ((OtherRecordingViewHolder) holder).pauseButton.setVisibility(View.INVISIBLE);
+                        CheckRecordingFile(mapArrayList.get(position).get("MESSAGE").toString(), ((OtherRecordingViewHolder)holder).playButton, ((OtherRecordingViewHolder)holder).pauseButton, ((OtherRecordingViewHolder)holder).progressBar);
+                        Log.e(TAG, "onBindViewHolder: Not" );
+                    }
+                }
+                else{
+                    CheckRecordingFile(mapArrayList.get(position).get("MESSAGE").toString(), ((OtherRecordingViewHolder)holder).playButton, ((OtherRecordingViewHolder)holder).pauseButton, ((OtherRecordingViewHolder)holder).progressBar);
+                }
             ((OtherRecordingViewHolder)holder).seekBar.setProgress(0);
-
         }
     }
 
@@ -591,8 +750,10 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         Snackbar.SnackbarLayout layout = (Snackbar.SnackbarLayout) snackBarUserMessage.getView();
         LayoutInflater inflater = LayoutInflater.from(activity);
         View snackView = inflater.inflate(R.layout.snack_bar_message_user, null);
+
         Button unSend = snackView.findViewById(R.id.unsend);
         Button remove = snackView.findViewById(R.id.remove);
+        Button mCopy = snackView.findViewById(R.id.copy);
 
         unSend.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -609,6 +770,18 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             @Override
             public void onClick(View v) {
                 RemoveLocalMessage(snackBarSelectedListPosition);
+                snackBarSelectedListPosition = -1;
+                snackPosition = -1;
+                AddDashBoard();
+                snackBarUserMessage.dismiss();
+            }
+        });
+
+        mCopy.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                CopyMessage(snackBarSelectedListPosition);
+                notifyItemChanged(snackBarSelectedListPosition);
                 snackBarSelectedListPosition = -1;
                 snackPosition = -1;
                 AddDashBoard();
@@ -635,6 +808,8 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         layout.addView(snackView, 0);
 
         Button remove = snackView.findViewById(R.id.remove);
+        Button mCopy = snackView.findViewById(R.id.copy);
+
         remove.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -646,8 +821,19 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             }
         });
 
-    }
+        mCopy.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                CopyMessage(snackBarSelectedListPosition);
+                notifyItemChanged(snackBarSelectedListPosition);
+                snackBarSelectedListPosition = -1;
+                snackPosition = -1;
+                AddDashBoard();
+                snackBarOtherMessage.dismiss();
+            }
+        });
 
+    }
     /**
      * Creates snack bar for user recording/video/image
      */
@@ -659,6 +845,44 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         View snackView = inflater.inflate(R.layout.snack_bar_extra_user, null);
         layout.setPadding(0,0,0,0);
         layout.addView(snackView, 0);
+
+        Button unSend = snackView.findViewById(R.id.unsend);
+        Button remove = snackView.findViewById(R.id.remove);
+
+        unSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                UnSendMessage(snackBarSelectedListPosition);
+                if(mapArrayList.get(snackBarSelectedListPosition).get("TYPE").toString().contains("IMAGE")){
+                    final StorageReference ref = storage.getReference().child("images/message/" + mapArrayList.get(snackBarSelectedListPosition).get("MESSAGE").toString());
+                    ref.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            Toast.makeText(activity, "Image successfully deleted!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+                else if(mapArrayList.get(snackBarSelectedListPosition).get("TYPE").toString().contains("RECORDING")){
+
+                }
+                snackBarSelectedListPosition = -1;
+                snackPosition = -1;
+                AddDashBoard();
+                snackBarUserExtra.dismiss();
+            }
+        });
+
+        remove.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                RemoveLocalMessage(snackBarSelectedListPosition);
+                snackBarSelectedListPosition = -1;
+                snackPosition = -1;
+                AddDashBoard();
+                snackBarUserExtra.dismiss();
+            }
+        });
+
     }
 
     /**
@@ -672,6 +896,19 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         View snackView = inflater.inflate(R.layout.snack_bar_extra_other, null);
         layout.setPadding(0,0,0,0);
         layout.addView(snackView, 0);
+
+        Button remove = snackView.findViewById(R.id.remove);
+
+        remove.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                RemoveLocalMessage(snackBarSelectedListPosition);
+                snackBarSelectedListPosition = -1;
+                snackPosition = -1;
+                AddDashBoard();
+                snackBarOtherExtra.dismiss();
+            }
+        });
     }
 
     /**
@@ -790,6 +1027,56 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
     }
 
+    void CheckRecordingFile(String URL, final ImageButton playButton, final ImageButton pauseButton, final ProgressBar progressBar){
+        final Handler handler = new Handler(Looper.getMainLooper());
+
+        playButton.setVisibility(View.INVISIBLE);
+        pauseButton.setVisibility(View.INVISIBLE);
+        progressBar.setVisibility(View.VISIBLE);
+
+        String finalRecorderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() +
+                "/" + URL;
+        finalRecorderPath = finalRecorderPath.trim();
+        final File file = new File(finalRecorderPath);
+
+        Log.e(TAG, "CheckRecordingFile: " + file.exists());
+        if(!file.exists()){
+            Log.e(TAG, "getView: " + "recording/" + URL);
+            final StorageReference ref = storage.getReference().child("recording/" + URL);
+            ref.getBytes(1020*1024).addOnSuccessListener(new OnSuccessListener<byte[]>() {
+                @Override
+                public void onSuccess(byte[] bytes) {
+                    Log.e("TestData", "onSuccess: " + "successfully downloaded recording" );
+                    try {
+                        file.createNewFile();
+                        FileOutputStream fos = new FileOutputStream(file);
+                        fos.write(bytes);
+                        fos.close();
+                        Log.e(TAG, "onSuccess: Written to local storage");
+
+                        playButton.setVisibility(View.VISIBLE);
+                        pauseButton.setVisibility(View.INVISIBLE);
+                        progressBar.setVisibility(View.INVISIBLE);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Log.e(TAG, "onSuccess: " + e );
+                    }
+
+                }
+            });
+        }
+        else{
+            playButton.setVisibility(View.VISIBLE);
+            pauseButton.setVisibility(View.INVISIBLE);
+            progressBar.setVisibility(View.INVISIBLE);
+        }
+
+
+
+
+    }
+
     /**
      * Returns time of the message received/send as formatted time
      * @param position Current position of the view/ list
@@ -851,6 +1138,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             public void onComplete(@Nullable DatabaseError error, @NonNull DatabaseReference refer) {
 
                 databaseReference.child("CONCURRENT MESSAGE").child(mAuth.getUid()).child(userId).child(keys).removeValue();
+                databaseReference.child("MESSAGE KEYS").child(mAuth.getUid()).child(userId).child(keys).removeValue();
 
                 refMain.child(keys).removeValue();
 
@@ -915,7 +1203,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             public void run() {
                 try {
                     MessageDatabase database = MessageDatabase.getInstance(activity);
-                    database.dao().deleteTuple(keys);
+                    database.dao().deleteLocal(keys);
                 } catch (Exception e) {
 
                 }
@@ -933,6 +1221,7 @@ public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     private void CopyMessage(int position){
         android.content.ClipboardManager clipboard = (android.content.ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
         android.content.ClipData clip = android.content.ClipData.newPlainText("Chat Box Message", mapArrayList.get(position).get("MESSAGE").toString());
+        Toast.makeText(activity, "Message Copied", Toast.LENGTH_SHORT).show();
         assert clipboard != null;
         clipboard.setPrimaryClip(clip);
     }

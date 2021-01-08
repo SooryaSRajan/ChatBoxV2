@@ -34,10 +34,14 @@
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/colorGreen" />
         <service
-            android:name=".Serrvices.RecordedAudioService"
+            android:name=".MusicService"
             android:enabled="true"
             android:exported="true"></service>
 
+        <service
+            android:name=".Serrvices.RecordedAudioService"
+            android:enabled="true"
+            android:exported="true" />
         <service android:name=".FCMNotifications.MyFireBaseMessagingService">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
@@ -49,10 +53,10 @@
             </intent-filter>
         </service>
     </application>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
 </manifest>

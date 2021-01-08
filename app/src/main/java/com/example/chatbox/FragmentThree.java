@@ -95,20 +95,6 @@ public class FragmentThree extends Fragment {
                         .get("KEY")).toString()).child(firebaseUser.getUid()).setValue("REQUESTED");
                 alertDialogFriend.dismiss();
 
-                FirebaseDatabase.getInstance().getReference().child("TOKENS").child(searchMap
-                        .get(currentListPosition).get("KEY").toString()).addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-
-                    }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-
-                    }
-                });
-
-
             }
         });
 
@@ -174,8 +160,12 @@ public class FragmentThree extends Fragment {
                                 alertDialog.show();
 
                             }
-                            else
-                            Toast.makeText(getActivity(), "Request already sent", Toast.LENGTH_SHORT).show();
+                            else{
+                                mUnfollowBuilderTitle.setText("Delete Request sent to " + searchMap.get(position).get("NAME").toString() + "?");
+                                mUnfollowBuilderSubTitle.setText("Are you sure you want to delete request sent to" +
+                                        searchMap.get(position).get("NAME").toString() + "?");
+                                alertDialog.show();
+                            }
                         }
 
                         else{
@@ -222,14 +212,35 @@ public class FragmentThree extends Fragment {
                         @Override
                         public void run() {
                             for(int i = 0; i<profileList.size(); i++){
-                                profile mProfile = profileList.get(i);
+                                final profile mProfile = profileList.get(i);
                                 if(!mProfile.user_key.contains(firebaseUser.getUid())) {
-                                    HashMap map = new HashMap();
+                                    final HashMap map = new HashMap();
                                     map.put("NAME", mProfile.name);
                                     map.put("KEY", mProfile.user_key);
-                                    profileMap.add(map);
-                                    searchMap.add(map);
-                                    ListViewUpdater();
+                                    mRef.child(mProfile.user_key).child(firebaseUser.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
+                                        @Override
+                                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                            if(snapshot.getValue() != null) {
+                                                if (snapshot.getValue().toString().contains("ACCEPTED")) {
+                                                    map.put("LAST MESSAGE", "Already Friends");
+                                                }
+                                                else if (snapshot.getValue().toString().contains("REQUESTED")){
+                                                    map.put("LAST MESSAGE", "Requested...");
+                                                }
+                                            }
+                                            else{
+                                                map.put("LAST MESSAGE", "Not friends");
+                                            }
+                                            profileMap.add(map);
+                                            searchMap.add(map);
+                                            ListViewUpdater();
+                                        }
+
+                                        @Override
+                                        public void onCancelled(@NonNull DatabaseError error) {
+
+                                        }
+                                    });
                                     Log.e(TAG, "run: For Loop");
                                 }
                             }
@@ -296,3 +307,7 @@ public class FragmentThree extends Fragment {
 
     }
 }
+
+/**
+ * TODO Add a value event listener to check for changes in request state
+ */

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:elevation="0dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <com.google.android.material.navigation.NavigationView
+        android:layout_below="@id/divider"
+        app:elevation="0dp"
+        app:menu="@menu/navigation_menu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:textSize="23sp"
+        android:fontFamily="sans-serif-condensed-medium"
+        android:layout_margin="20dp"
+        android:id="@+id/user_name_drawer"
+        android:layout_centerHorizontal="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <View style="@style/Divider"
+        android:layout_below="@+id/user_name_drawer"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/divider"/>
+
+</RelativeLayout>

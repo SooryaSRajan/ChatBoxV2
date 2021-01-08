@@ -25,6 +25,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.example.chatbox.ChatListActivity;
+import com.example.chatbox.MusicService;
 import com.example.chatbox.R;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
@@ -59,10 +60,9 @@ public class ChatAdapter extends BaseAdapter {
     private int recorderButtonPressedPosition = -1;
     ListView listView;
 
-    public ChatAdapter(Activity activity, ArrayList<HashMap> chatList){
+    public ChatAdapter(Activity activity, ArrayList<HashMap> chatList, MusicService musicService){
         this.chatList = chatList;
         this.activity = activity;
-        this.listView = listView;
 
         storage = FirebaseStorage.getInstance();
         mDataRef = storage.getReferenceFromUrl("gs://chat-box-v2.appspot.com");
@@ -182,7 +182,6 @@ public class ChatAdapter extends BaseAdapter {
 
             else
                 convertView = inflater.inflate(R.layout.message_image_layout_other, null);
-
 
             ImageView imageView = convertView.findViewById(R.id.message_image_view);
             ProgressBar progressBar = convertView.findViewById(R.id.progress_circular_bar_image);
